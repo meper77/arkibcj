@@ -96,7 +96,7 @@
                 <div class="mb-5">
                     <h3 class="text-lg font-semibold text-uitm-purple-700 tracking-tight">Tukar Kata Laluan</h3>
                     <div class="mt-1 h-0.5 w-12 bg-uitm-gold-400 rounded-full"></div>
-                    <p class="mt-2 text-xs text-stone-500">Kata laluan baharu mesti tepat 8 aksara.</p>
+                    <p class="mt-2 text-xs text-stone-500">Kata laluan baharu mesti sekurang-kurangnya 8 aksara.</p>
                 </div>
 
                 @if(session('status') === 'password-updated')
@@ -110,22 +110,31 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="space-y-4 max-w-sm">
+                    <div class="space-y-4 max-w-sm" x-data="{ show: false }">
+                        <div class="flex items-center justify-end -mb-2">
+                            <button type="button" @click="show = !show"
+                                    class="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-uitm-purple-700 focus:outline-none">
+                                <svg x-show="!show" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <svg x-show="show" x-cloak class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908A3 3 0 1115 12M9.88 9.88l4.24 4.24M3 3l18 18"/></svg>
+                                <span x-text="show ? 'Sembunyikan' : 'Tunjuk kata laluan'"></span>
+                            </button>
+                        </div>
+
                         <div>
                             <x-input-label for="current_password" :value="__('Kata Laluan Semasa')" />
-                            <x-text-input id="current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+                            <x-text-input id="current_password" name="current_password" type="password" ::type="show ? 'text' : 'password'" class="mt-1 block w-full" autocomplete="current-password" />
                             <x-input-error :messages="$errors->get('current_password')" class="mt-1" />
                         </div>
 
                         <div>
-                            <x-input-label for="password" :value="__('Kata Laluan Baharu (tepat 8 aksara)')" />
-                            <x-text-input id="password" name="password" type="password" class="mt-1 block w-full" maxlength="8" minlength="8" autocomplete="new-password" />
+                            <x-input-label for="password" :value="__('Kata Laluan Baharu (minimum 8 aksara)')" />
+                            <x-text-input id="password" name="password" type="password" ::type="show ? 'text' : 'password'" class="mt-1 block w-full" minlength="8" autocomplete="new-password" />
                             <x-input-error :messages="$errors->get('password')" class="mt-1" />
                         </div>
 
                         <div>
                             <x-input-label for="password_confirmation" :value="__('Sahkan Kata Laluan Baharu')" />
-                            <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" maxlength="8" minlength="8" autocomplete="new-password" />
+                            <x-text-input id="password_confirmation" name="password_confirmation" type="password" ::type="show ? 'text' : 'password'" class="mt-1 block w-full" minlength="8" autocomplete="new-password" />
                             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1" />
                         </div>
 

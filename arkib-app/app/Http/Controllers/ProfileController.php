@@ -44,16 +44,7 @@ class ProfileController extends Controller
     {
         $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => [
-                'required',
-                'string',
-                'confirmed',
-                function ($attribute, $value, $fail) {
-                    if (strlen($value) !== 8) {
-                        $fail('Kata laluan baharu mestilah tepat 8 aksara.');
-                    }
-                },
-            ],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $request->user()->update([
