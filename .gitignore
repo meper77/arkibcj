@@ -1,0 +1,4 @@
+.claude/
+.remember/
+*.log
+.DS_Store
