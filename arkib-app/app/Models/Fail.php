@@ -13,6 +13,7 @@ class Fail extends Model
     protected $fillable = [
         'no_rujukan_id',
         'jilid',
+        'kertas_berhubung_id',
         'tarikh_pertama',
         'tarikh_akhir',
         'tarikh_tutup',
@@ -38,5 +39,18 @@ class Fail extends Model
     public function pemisahan(): HasOne
     {
         return $this->hasOne(Pemisahan::class, 'fail_id');
+    }
+
+    public function kertasBerhubung(): BelongsTo
+    {
+        return $this->belongsTo(Fail::class, 'kertas_berhubung_id')->with('noRujukan');
+    }
+
+    public function getKertasBerhubungLabelAttribute(): ?string
+    {
+        $rel = $this->kertasBerhubung;
+        if (!$rel || !$rel->noRujukan) return null;
+        $base = $rel->noRujukan->no_rujukan_full;
+        return $rel->jilid > 1 ? "$base Jld.{$rel->jilid}" : $base;
     }
 }

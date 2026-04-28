@@ -281,4 +281,80 @@ class DocTemplateService
 
         return $this->saveTmp($tp, 'pelupusan');
     }
+
+    /**
+     * Borang Penilaian Rekod — template tokens (data row, cloneRow on 'bil'):
+     *   ${bil} ${rujukan_fail} ${tajuk} ${dibuka} ${ditutup}
+     *   ${taraf} ${bil_folio} ${musnah} ${catatan}
+     *
+     * @param \Illuminate\Support\Collection $fails eager-loaded with noRujukan
+     */
+    public function buildPenilaian($fails): string
+    {
+        $tp = $this->newProcessor('BorangPenilaianRekod.docx');
+        $count = $fails->count();
+
+        if ($count > 1) {
+            $tp->cloneRow('bil', 1);
+            $bil = [];
+            $rujukan = [];
+            $tajuk = [];
+            $dibuka = [];
+            $ditutup = [];
+            $taraf = [];
+            $bilFolio = [];
+            $musnah = [];
+            $catatan = [];
+            $i = 0;
+            foreach ($fails as $f) {
+                $i++;
+                $base = (string)($f->noRujukan->no_rujukan_full ?? '');
+                $jilid = (int)($f->jilid ?? 1);
+                $rujukan[] = $jilid > 1 ? "$base Jld.$jilid" : $base;
+                $bil[] = $i . '.';
+                $tajuk[] = ($f->noRujukan->perkara ?? '') . ($jilid > 1 ? " Jld.$jilid" : '');
+                $dibuka[] = optional($f->tarikh_pertama)->format('d/m/Y') ?? '-';
+                $ditutup[] = optional($f->tarikh_akhir)->format('d/m/Y') ?? '-';
+                $taraf[] = '-';
+                $bilFolio[] = '-';
+                $musnah[] = '-';
+                $catatan[] = '-';
+            }
+            $br = '</w:t><w:br/><w:t>';
+            $tp->setValue('bil#1', implode($br, $bil));
+            $tp->setValue('rujukan_fail#1', implode($br, $rujukan));
+            $tp->setValue('tajuk#1', implode($br, $tajuk));
+            $tp->setValue('dibuka#1', implode($br, $dibuka));
+            $tp->setValue('ditutup#1', implode($br, $ditutup));
+            $tp->setValue('taraf#1', implode($br, $taraf));
+            $tp->setValue('bil_folio#1', implode($br, $bilFolio));
+            $tp->setValue('musnah#1', implode($br, $musnah));
+            $tp->setValue('catatan#1', implode($br, $catatan));
+            return $this->saveTmp($tp, 'penilaian');
+        }
+
+        $rows = max(1, $count);
+        $tp->cloneRow('bil', $rows);
+        $i = 0;
+        foreach ($fails as $f) {
+            $i++;
+            $jilid = (int)($f->jilid ?? 1);
+            $tajuk = ($f->noRujukan->perkara ?? '') . ($jilid > 1 ? " Jld.$jilid" : '');
+            $tp->setValue('bil#'.$i, (string)$i);
+            $tp->setValue('rujukan_fail#'.$i, (string)($f->noRujukan->no_rujukan_full ?? ''));
+            $tp->setValue('tajuk#'.$i, $tajuk);
+            $tp->setValue('dibuka#'.$i, optional($f->tarikh_pertama)->format('d/m/Y') ?? '-');
+            $tp->setValue('ditutup#'.$i, optional($f->tarikh_akhir)->format('d/m/Y') ?? '-');
+            $tp->setValue('taraf#'.$i, '-');
+            $tp->setValue('bil_folio#'.$i, '-');
+            $tp->setValue('musnah#'.$i, '-');
+            $tp->setValue('catatan#'.$i, '');
+        }
+        if ($fails->isEmpty()) {
+            foreach (['bil','rujukan_fail','tajuk','dibuka','ditutup','taraf','bil_folio','musnah','catatan'] as $k) {
+                $tp->setValue($k.'#1','');
+            }
+        }
+        return $this->saveTmp($tp, 'penilaian');
+    }
 }

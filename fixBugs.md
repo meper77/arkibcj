@@ -1,7 +1,14 @@
+# fixBugs.md
+- add the following new features
 
-# fix bugs
+## FAIL
 
-- remove dashboard page
-- make no. rujukan as main page
+### PRINT FAIL (SELECT BUTTON-PART OF SECOND PAGE) (NEW)
+- PERKARA/ TAJUK FAIL COLUMN format
+- PENTADBIRAN - AM Jld.2
+- when Jilid 1, hide Jld.1 text only for PERKARA/ TAJUK FAIL COLUMN
+
+---
+
 
 

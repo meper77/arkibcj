@@ -42,7 +42,7 @@
                 <button type="button" onclick="document.getElementById('batchModal').classList.remove('hidden')"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-white text-uitm-purple-700 text-sm font-medium rounded-lg border border-uitm-purple-200 hover:bg-uitm-purple-50 focus:outline-none focus:ring-2 focus:ring-uitm-purple-500 focus:ring-offset-1 transition">
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
-                    Batch (CSV)
+                    Batch (xlsx)
                 </button>
 
                 <button type="button" onclick="toggleSelectMode()" id="selectBtn"
@@ -78,6 +78,7 @@
                                 <th class="px-4 py-3 text-right text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider w-16">BIL.</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">No. Rujukan</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">Perkara</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">Deskripsi</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-stone-200">
@@ -90,10 +91,11 @@
                                 <td class="px-4 py-3 text-sm text-stone-500 text-right tabular-nums">{{ $i + 1 }}</td>
                                 <td class="px-4 py-3 text-sm font-mono text-uitm-purple-700 font-medium">{{ $nr->no_rujukan_full }}</td>
                                 <td class="px-4 py-3 text-sm text-stone-700">{{ $nr->perkara }}</td>
+                                <td class="px-4 py-3 text-sm text-stone-700">{{ $nr->deskripsi }}</td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-12 text-center">
+                                <td colspan="5" class="px-4 py-12 text-center">
                                     <div class="flex flex-col items-center gap-3 text-stone-400">
                                         <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
                                         <p class="text-sm font-medium">Tiada rekod didaftarkan</p>
@@ -112,26 +114,26 @@
     <!-- Batch Modal -->
     <div id="batchModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-xl shadow-2xl ring-1 ring-stone-200 p-6 w-full max-w-md">
-            <h3 class="text-lg font-semibold mb-1 text-uitm-purple-700">Import CSV — No. Rujukan</h3>
+            <h3 class="text-lg font-semibold mb-1 text-uitm-purple-700">Import XLSX — No. Rujukan</h3>
             <div class="h-0.5 w-10 bg-uitm-gold-400 rounded-full mb-4"></div>
 
             <p class="text-sm text-stone-600 mb-4">
-                Muat turun templat CSV terlebih dahulu, isi data, kemudian muat naik.
+                Muat turun templat xlsx terlebih dahulu, isi data, kemudian muat naik.
             </p>
 
-            <a href="{{ route('no-rujukan.csv-template') }}"
+            <a href="{{ route('no-rujukan.xlsx-template') }}"
                class="inline-flex items-center gap-2 mb-4 px-3 py-2 bg-stone-100 text-stone-700 text-sm rounded-lg hover:bg-stone-200 transition">
                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
-                Muat Turun Templat CSV
+                Muat Turun Templat xlsx
             </a>
 
-            <form method="POST" action="{{ route('no-rujukan.csv-import') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('no-rujukan.xlsx-import') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-stone-700 mb-1">Fail CSV</label>
-                    <input type="file" name="csv_file" accept=".csv,.txt" required
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Fail xlsx</label>
+                    <input type="file" name="file" accept=".xlsx,.xls" required
                            class="block w-full text-sm text-stone-600 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-uitm-purple-50 file:text-uitm-purple-700 hover:file:bg-uitm-purple-100 cursor-pointer">
-                    @error('csv_file')
+                    @error('file')
                         <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
                     @enderror
                 </div>

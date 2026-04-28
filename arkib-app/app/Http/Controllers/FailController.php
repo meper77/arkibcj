@@ -6,6 +6,7 @@ use App\Models\Fail;
 use App\Models\NoRujukan;
 use App\Models\Pelupusan;
 use App\Models\Pemisahan;
+use App\Services\DocTemplateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -22,7 +23,7 @@ class FailController extends Controller
 {
     public function index(): View
     {
-        $fails = Fail::with('noRujukan')->orderBy('no_rujukan_id')->orderBy('jilid')->get();
+        $fails = Fail::with(['noRujukan', 'kertasBerhubung.noRujukan'])->orderBy('no_rujukan_id')->orderBy('jilid')->get();
         return view('fail.index', compact('fails'));
     }
 
@@ -61,7 +62,13 @@ class FailController extends Controller
     public function edit(Fail $fail): View
     {
         $fail->load('noRujukan');
-        return view('fail.edit', compact('fail'));
+        $availableKertas = Fail::with('noRujukan')
+            ->where('no_rujukan_id', $fail->no_rujukan_id)
+            ->where('id', '!=', $fail->id)
+            ->where('jilid', '!=', $fail->jilid)
+            ->orderBy('jilid')
+            ->get();
+        return view('fail.edit', compact('fail', 'availableKertas'));
     }
 
     public function update(Request $request, Fail $fail): RedirectResponse
@@ -70,6 +77,7 @@ class FailController extends Controller
             'tarikh_akhir' => ['nullable', 'date', 'after_or_equal:' . $fail->tarikh_pertama],
             'tarikh_tutup' => ['nullable', 'date'],
             'kotak' => ['nullable', 'string'],
+            'kertas_berhubung_id' => ['nullable', 'integer', Rule::exists('fail', 'id')->where(fn($q) => $q->where('no_rujukan_id', $fail->no_rujukan_id)->where('id', '!=', $fail->id))],
         ]);
 
         $newKotak = $request->kotak ?: null;
@@ -79,6 +87,7 @@ class FailController extends Controller
             'tarikh_akhir' => $request->tarikh_akhir ?: null,
             'tarikh_tutup' => $request->tarikh_tutup ?: null,
             'kotak' => $newKotak,
+            'kertas_berhubung_id' => $request->kertas_berhubung_id ?: null,
             'person_in_charge' => Auth::user()->name,
         ]);
 
@@ -303,5 +312,18 @@ class FailController extends Controller
         }
 
         return redirect()->route('fail.index')->with('success', "{$successCount} rekod berjaya diimport.");
+    }
+
+    public function print(Request $request): BinaryFileResponse
+    {
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:fail,id'],
+        ]);
+
+        $fails = Fail::with('noRujukan')->whereIn('id', $request->ids)->get();
+        $path = app(DocTemplateService::class)->buildPenilaian($fails);
+
+        return response()->download($path, 'penilaian-fail.docx')->deleteFileAfterSend(true);
     }
 }

@@ -90,6 +90,17 @@
                         <x-input-error :messages="$errors->get('perkara')" class="mt-1" />
                     </div>
 
+                    <!-- DESKRIPSI -->
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-stone-700 mb-1">DESKRIPSI <span class="text-uitm-purple-700">*</span></label>
+                        <input type="text" name="deskripsi" required
+                               value="{{ old('deskripsi') }}"
+                               x-model="deskripsi" @input="$event.target.value = $event.target.value.toUpperCase()"
+                               class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition"
+                               placeholder="KETERANGAN AM">
+                        <x-input-error :messages="$errors->get('deskripsi')" class="mt-2" />
+                    </div>
+
                     <!-- ADDITIONAL SPACE -->
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-stone-700 mb-2">RUANG TAMBAHAN</label>
@@ -141,6 +152,7 @@
                 kodBahagian: '{{ old('kod_bahagian', '') }}',
                 nomborFail: '{{ old('nombor_fail', '') }}',
                 perkara: '{{ old('perkara', '') }}',
+                deskripsi: '{{ old('deskripsi', '') }}',
                 additionalSpace: '{{ old('additional_space', '0') }}',
                 preview: '',
                 updatePreview() {

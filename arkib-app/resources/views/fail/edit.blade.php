@@ -87,6 +87,20 @@
                                 <input type="text" readonly value="{{ Auth::user()->name }}"
                                        class="block w-full rounded-lg bg-stone-50 border-stone-200 shadow-sm text-sm text-stone-600 cursor-not-allowed">
                             </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-stone-700 mb-1">KERTAS-KERTAS YANG BERHUBUNG</label>
+                                <select name="kertas_berhubung_id"
+                                        class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition">
+                                    <option value="">— Tiada —</option>
+                                    @foreach($availableKertas as $item)
+                                        <option value="{{ $item->id }}" {{ old('kertas_berhubung_id', $fail->kertas_berhubung_id) == $item->id ? 'selected' : '' }}>
+                                            {{ $item->noRujukan->no_rujukan_full . ($item->jilid > 1 ? ' Jld.'.$item->jilid : '') }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('kertas_berhubung_id')" class="mt-1" />
+                            </div>
                         </div>
                     </div>
 

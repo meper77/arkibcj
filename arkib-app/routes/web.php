@@ -27,8 +27,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/no-rujukan/create', [NoRujukanController::class, 'create'])->name('no-rujukan.create');
     Route::post('/no-rujukan', [NoRujukanController::class, 'store'])->name('no-rujukan.store');
     Route::delete('/no-rujukan/delete', [NoRujukanController::class, 'destroy'])->name('no-rujukan.destroy');
-    Route::get('/no-rujukan/csv-template', [NoRujukanController::class, 'csvTemplate'])->name('no-rujukan.csv-template');
-    Route::post('/no-rujukan/csv-import', [NoRujukanController::class, 'csvImport'])->name('no-rujukan.csv-import');
+    Route::get('/no-rujukan/xlsx-template', [NoRujukanController::class, 'xlsxTemplate'])->name('no-rujukan.xlsx-template');
+    Route::post('/no-rujukan/xlsx-import', [NoRujukanController::class, 'xlsxImport'])->name('no-rujukan.xlsx-import');
 
     // Fail
     Route::get('/fail', [FailController::class, 'index'])->name('fail.index');
@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/fail/{fail}/edit', [FailController::class, 'edit'])->name('fail.edit');
     Route::patch('/fail/{fail}', [FailController::class, 'update'])->name('fail.update');
     Route::delete('/fail/delete', [FailController::class, 'destroy'])->name('fail.destroy');
+    Route::post('/fail/print', [FailController::class, 'print'])->name('fail.print');
     Route::get('/fail/csv-template', [FailController::class, 'csvTemplate'])->name('fail.csv-template');
     Route::post('/fail/csv-import', [FailController::class, 'csvImport'])->name('fail.csv-import');
 

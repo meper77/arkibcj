@@ -7,7 +7,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class NoRujukanController extends Controller
 {
@@ -39,10 +42,12 @@ class NoRujukanController extends Controller
                 ),
             ],
             'perkara' => ['required', 'string', 'max:255'],
+            'deskripsi' => ['required', 'string', 'max:255'],
             'additional_space' => ['boolean'],
         ]);
 
         $validated['additional_space'] = $request->boolean('additional_space');
+        $validated['deskripsi'] = strtoupper(trim($request->deskripsi));
 
         NoRujukan::create($validated);
 
@@ -61,75 +66,94 @@ class NoRujukanController extends Controller
         return redirect()->route('no-rujukan.index')->with('success', 'No. Rujukan berjaya dipadam.');
     }
 
-    public function csvTemplate(): StreamedResponse
+    public function xlsxTemplate(): BinaryFileResponse
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="template_no_rujukan.csv"',
-        ];
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('template_no_rujukan');
 
-        $callback = function () {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'additional_space']);
-            fputcsv($handle, ['100', 'UiTM', 'INFO', '1/1', 'PENTADBIRAN - AM', '0']);
-            fclose($handle);
-        };
+        $headers = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'deskripsi', 'additional_space'];
+        $col = 'A';
+        foreach ($headers as $h) {
+            $sheet->setCellValue($col . '1', $h);
+            $col++;
+        }
+        $sheet->getStyle('A1:G1')->getFont()->setBold(true);
 
-        return response()->stream($callback, 200, $headers);
+        $sheet->setCellValue('A2', '100');
+        $sheet->setCellValue('B2', 'UiTM');
+        $sheet->setCellValue('C2', 'INFO');
+        $sheet->setCellValue('D2', '1/1');
+        $sheet->setCellValue('E2', 'PENTADBIRAN - AM');
+        $sheet->setCellValue('F2', 'KETERANGAN AM');
+        $sheet->setCellValue('G2', '0');
+
+        $tmp = tempnam(sys_get_temp_dir(), 'tmpl_norujukan_') . '.xlsx';
+        $writer = new XlsxWriter($spreadsheet);
+        $writer->save($tmp);
+
+        return response()->download($tmp, 'template-no-rujukan.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
     }
 
-    public function csvImport(Request $request): RedirectResponse
+    public function xlsxImport(Request $request): RedirectResponse
     {
         $request->validate([
-            'csv_file' => ['required', 'file', 'mimes:csv,txt'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls'],
         ]);
 
-        $file = $request->file('csv_file');
-        $handle = fopen($file->getRealPath(), 'r');
+        $file = $request->file('file');
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'Gagal membaca fail Excel: ' . $e->getMessage()]);
+        }
 
-        $headers = fgetcsv($handle);
-        $expectedHeaders = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'additional_space'];
+        $data = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+        $expectedHeaders = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'deskripsi', 'additional_space'];
 
+        $headers = array_map(fn($v) => is_string($v) ? trim($v) : $v, array_slice($data[0] ?? [], 0, 7));
         if ($headers !== $expectedHeaders) {
-            fclose($handle);
-            return back()->withErrors(['csv_file' => 'Format CSV tidak sah. Header mesti: ' . implode(', ', $expectedHeaders)]);
+            return back()->withErrors(['file' => 'Format tidak sah. Header mesti: ' . implode(', ', $expectedHeaders)]);
         }
 
         $rowErrors = [];
-        $rowNum = 1;
         $successCount = 0;
 
-        while (($row = fgetcsv($handle)) !== false) {
-            $rowNum++;
-            if (count($row) !== 6) {
-                $rowErrors[] = "Baris {$rowNum}: Bilangan lajur tidak betul (perlu 6).";
-                continue;
-            }
+        for ($i = 1; $i < count($data); $i++) {
+            $row = $data[$i];
+            if (count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0) continue;
 
-            [$siri, $kampus, $kodBahagian, $nomborFail, $perkara, $additionalSpace] = $row;
+            $rowNum = $i + 1;
+            $row = array_pad(array_slice($row, 0, 7), 7, '');
+            [$siri, $kampus, $kodBahagian, $nomborFail, $perkara, $deskripsi, $additionalSpace] = $row;
 
             $errors = [];
             if (!is_numeric($siri) || (int)$siri < 1) {
                 $errors[] = 'siri mesti nombor positif';
             }
-            if (empty(trim($kampus))) {
+            if (empty(trim((string)$kampus))) {
                 $errors[] = 'kampus diperlukan';
             }
-            if (empty(trim($kodBahagian))) {
+            if (empty(trim((string)$kodBahagian))) {
                 $errors[] = 'kod_bahagian diperlukan';
             }
-            if (empty(trim($nomborFail))) {
+            if (empty(trim((string)$nomborFail))) {
                 $errors[] = 'nombor_fail diperlukan';
             }
-            if (empty(trim($perkara))) {
+            if (empty(trim((string)$perkara))) {
                 $errors[] = 'perkara diperlukan';
+            }
+            if (empty(trim((string)$deskripsi))) {
+                $errors[] = 'deskripsi diperlukan';
             }
 
             if (empty($errors)) {
                 $exists = NoRujukan::where('siri', (int)$siri)
-                    ->where('kampus', trim($kampus))
-                    ->where('kod_bahagian', trim($kodBahagian))
-                    ->where('nombor_fail', trim($nomborFail))
+                    ->where('kampus', trim((string)$kampus))
+                    ->where('kod_bahagian', trim((string)$kodBahagian))
+                    ->where('nombor_fail', trim((string)$nomborFail))
                     ->exists();
                 if ($exists) {
                     $errors[] = 'rekod dengan kombinasi siri, kampus, kod_bahagian, nombor_fail ini sudah wujud';
@@ -143,16 +167,15 @@ class NoRujukanController extends Controller
 
             NoRujukan::create([
                 'siri' => (int)$siri,
-                'kampus' => trim($kampus),
-                'kod_bahagian' => trim($kodBahagian),
-                'nombor_fail' => trim($nomborFail),
-                'perkara' => trim($perkara),
+                'kampus' => trim((string)$kampus),
+                'kod_bahagian' => trim((string)$kodBahagian),
+                'nombor_fail' => trim((string)$nomborFail),
+                'perkara' => trim((string)$perkara),
+                'deskripsi' => strtoupper(trim((string)$deskripsi)),
                 'additional_space' => (bool)(int)$additionalSpace,
             ]);
             $successCount++;
         }
-
-        fclose($handle);
 
         if (!empty($rowErrors)) {
             return back()->with('csv_success', $successCount)->withErrors(['csv_rows' => implode("\n", $rowErrors)]);

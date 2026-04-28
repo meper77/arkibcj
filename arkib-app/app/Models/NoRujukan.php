@@ -15,6 +15,7 @@ class NoRujukan extends Model
         'kod_bahagian',
         'nombor_fail',
         'perkara',
+        'deskripsi',
         'additional_space',
     ];
 

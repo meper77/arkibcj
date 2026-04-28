@@ -41,7 +41,7 @@
                 <button type="button" onclick="document.getElementById('batchModal').classList.remove('hidden')"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-white text-uitm-purple-700 text-sm font-medium rounded-lg border border-uitm-purple-200 hover:bg-uitm-purple-50 transition">
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
-                    Batch (CSV)
+                    Batch (xlsx)
                 </button>
 
                 <button type="button" onclick="toggleSelectMode()" id="selectBtn"
@@ -53,6 +53,11 @@
                 <button type="button" onclick="deleteSelected()" id="deleteBtn"
                         class="hidden inline-flex items-center gap-2 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-rose-700 transition">
                     Padam Dipilih
+                </button>
+
+                <button type="button" onclick="printSelected()" id="printBtn"
+                        class="hidden inline-flex items-center gap-2 px-4 py-2 bg-uitm-purple-700 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-uitm-purple-800 transition">
+                    Cetak Dipilih
                 </button>
 
                 <button type="button" onclick="cancelSelect()" id="cancelBtn"
@@ -74,6 +79,7 @@
                     <option value="7">Tarikh Tutup</option>
                     <option value="8">Kotak</option>
                     <option value="9">Person in Charge</option>
+                    <option value="10">Kertas-Kertas Yang Berhubung</option>
                 </select>
                 <div class="relative flex-1 min-w-[200px] sm:max-w-md">
                     <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
@@ -107,6 +113,7 @@
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">Tarikh Tutup</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">Kotak</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">Person in Charge</th>
+                                <th class="px-3 py-3 text-left text-xs font-semibold text-uitm-purple-800 uppercase tracking-wider">Kertas-Kertas Yang Berhubung</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-stone-200">
@@ -126,10 +133,11 @@
                                 <td class="px-3 py-3 text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_tutup?->format('d/m/Y') ?? '—' }}</td>
                                 <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->kotak ?? '—' }}</td>
                                 <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->person_in_charge }}</td>
+                                <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->kertas_berhubung_label ?? '-' }}</td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="10" class="px-4 py-12 text-center">
+                                <td colspan="11" class="px-4 py-12 text-center">
                                     <div class="flex flex-col items-center gap-3 text-stone-400">
                                         <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"/></svg>
                                         <p class="text-sm font-medium">Tiada rekod fail</p>
@@ -142,6 +150,10 @@
                     </table>
                 </form>
             </div>
+
+            <form id="printForm" method="POST" action="{{ route('fail.print') }}" class="hidden">
+                @csrf
+            </form>
         </div>
     </div>
 
@@ -197,6 +209,7 @@
             document.getElementById('selectAll').classList.remove('hidden');
             document.getElementById('selectBtn').classList.add('hidden');
             document.getElementById('deleteBtn').classList.remove('hidden');
+            document.getElementById('printBtn').classList.remove('hidden');
             document.getElementById('cancelBtn').classList.remove('hidden');
         }
 
@@ -209,6 +222,7 @@
             document.getElementById('selectAll').classList.add('hidden');
             document.getElementById('selectBtn').classList.remove('hidden');
             document.getElementById('deleteBtn').classList.add('hidden');
+            document.getElementById('printBtn').classList.add('hidden');
             document.getElementById('cancelBtn').classList.add('hidden');
         }
 
@@ -258,6 +272,24 @@
             if (confirm('Padam ' + checked.length + ' rekod yang dipilih?')) {
                 document.getElementById('deleteForm').submit();
             }
+        }
+
+        function printSelected() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) {
+                alert('Sila pilih sekurang-kurangnya satu rekod.');
+                return;
+            }
+            const printForm = document.getElementById('printForm');
+            printForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+            checked.forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = cb.value;
+                printForm.appendChild(input);
+            });
+            printForm.submit();
         }
     </script>
 </x-app-layout>
