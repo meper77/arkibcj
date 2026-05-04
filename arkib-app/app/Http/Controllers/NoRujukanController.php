@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\History;
 use App\Models\NoRujukan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -22,7 +24,8 @@ class NoRujukanController extends Controller
 
     public function create(): View
     {
-        return view('no-rujukan.create');
+        $fakulti = Auth::user()->fakultiBahagian;
+        return view('no-rujukan.create', compact('fakulti'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -39,17 +42,24 @@ class NoRujukanController extends Controller
                     ->where('siri', $request->siri)
                     ->where('kampus', $request->kampus)
                     ->where('kod_bahagian', $request->kod_bahagian)
+                    ->where('fakulti_bahagian_id', Auth::user()->fakulti_bahagian_id)
                 ),
             ],
             'perkara' => ['required', 'string', 'max:255'],
             'deskripsi' => ['required', 'string', 'max:255'],
-            'additional_space' => ['boolean'],
         ]);
 
-        $validated['additional_space'] = $request->boolean('additional_space');
         $validated['deskripsi'] = strtoupper(trim($request->deskripsi));
+        $validated['fakulti_bahagian_id'] = Auth::user()->fakulti_bahagian_id;
 
-        NoRujukan::create($validated);
+        $noRujukan = NoRujukan::create($validated);
+
+        History::log(
+            'Daftar No. Rujukan',
+            $noRujukan->no_rujukan_full . ' — ' . $noRujukan->perkara,
+            'no_rujukan',
+            $noRujukan->id,
+        );
 
         return redirect()->route('no-rujukan.index')->with('success', 'No. Rujukan berjaya didaftarkan.');
     }
@@ -61,7 +71,18 @@ class NoRujukanController extends Controller
             'ids.*' => ['integer', 'exists:no_rujukan,id'],
         ]);
 
+        $toDelete = NoRujukan::whereIn('id', $request->ids)->get();
+
         NoRujukan::whereIn('id', $request->ids)->delete();
+
+        foreach ($toDelete as $nr) {
+            History::log(
+                'Padam No. Rujukan',
+                $nr->no_rujukan_full,
+                'no_rujukan',
+                $nr->id,
+            );
+        }
 
         return redirect()->route('no-rujukan.index')->with('success', 'No. Rujukan berjaya dipadam.');
     }
@@ -72,13 +93,13 @@ class NoRujukanController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('template_no_rujukan');
 
-        $headers = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'deskripsi', 'additional_space'];
+        $headers = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'deskripsi'];
         $col = 'A';
         foreach ($headers as $h) {
             $sheet->setCellValue($col . '1', $h);
             $col++;
         }
-        $sheet->getStyle('A1:G1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
 
         $sheet->setCellValue('A2', '100');
         $sheet->setCellValue('B2', 'UiTM');
@@ -86,7 +107,6 @@ class NoRujukanController extends Controller
         $sheet->setCellValue('D2', '1/1');
         $sheet->setCellValue('E2', 'PENTADBIRAN - AM');
         $sheet->setCellValue('F2', 'KETERANGAN AM');
-        $sheet->setCellValue('G2', '0');
 
         $tmp = tempnam(sys_get_temp_dir(), 'tmpl_norujukan_') . '.xlsx';
         $writer = new XlsxWriter($spreadsheet);
@@ -111,9 +131,9 @@ class NoRujukanController extends Controller
         }
 
         $data = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
-        $expectedHeaders = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'deskripsi', 'additional_space'];
+        $expectedHeaders = ['siri', 'kampus', 'kod_bahagian', 'nombor_fail', 'perkara', 'deskripsi'];
 
-        $headers = array_map(fn($v) => is_string($v) ? trim($v) : $v, array_slice($data[0] ?? [], 0, 7));
+        $headers = array_map(fn($v) => is_string($v) ? trim($v) : $v, array_slice($data[0] ?? [], 0, 6));
         if ($headers !== $expectedHeaders) {
             return back()->withErrors(['file' => 'Format tidak sah. Header mesti: ' . implode(', ', $expectedHeaders)]);
         }
@@ -126,8 +146,8 @@ class NoRujukanController extends Controller
             if (count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0) continue;
 
             $rowNum = $i + 1;
-            $row = array_pad(array_slice($row, 0, 7), 7, '');
-            [$siri, $kampus, $kodBahagian, $nomborFail, $perkara, $deskripsi, $additionalSpace] = $row;
+            $row = array_pad(array_slice($row, 0, 6), 6, '');
+            [$siri, $kampus, $kodBahagian, $nomborFail, $perkara, $deskripsi] = $row;
 
             $errors = [];
             if (!is_numeric($siri) || (int)$siri < 1) {
@@ -172,14 +192,19 @@ class NoRujukanController extends Controller
                 'nombor_fail' => trim((string)$nomborFail),
                 'perkara' => trim((string)$perkara),
                 'deskripsi' => strtoupper(trim((string)$deskripsi)),
-                'additional_space' => (bool)(int)$additionalSpace,
+                'fakulti_bahagian_id' => Auth::user()->fakulti_bahagian_id,
             ]);
             $successCount++;
         }
 
         if (!empty($rowErrors)) {
+            if ($successCount > 0) {
+                History::log('Import Batch No. Rujukan', "{$successCount} rekod diimport");
+            }
             return back()->with('csv_success', $successCount)->withErrors(['csv_rows' => implode("\n", $rowErrors)]);
         }
+
+        History::log('Import Batch No. Rujukan', "{$successCount} rekod diimport");
 
         return redirect()->route('no-rujukan.index')->with('success', "{$successCount} rekod berjaya diimport.");
     }

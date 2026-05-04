@@ -28,7 +28,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('no-rujukan.store') }}" x-data="noRujukanForm()" x-init="updatePreview()">
+<form method="POST" action="{{ route('no-rujukan.store') }}" x-data="noRujukanForm()" x-init="updatePreview()">
                     @csrf
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,27 +101,6 @@
                         <x-input-error :messages="$errors->get('deskripsi')" class="mt-2" />
                     </div>
 
-                    <!-- ADDITIONAL SPACE -->
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-stone-700 mb-2">RUANG TAMBAHAN</label>
-                        <div class="flex flex-wrap gap-4">
-                            <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-stone-700">
-                                <input type="radio" name="additional_space" value="1"
-                                       x-model="additionalSpace" @change="updatePreview()"
-                                       class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500"
-                                       {{ old('additional_space') == '1' ? 'checked' : '' }}>
-                                Aktif
-                            </label>
-                            <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-stone-700">
-                                <input type="radio" name="additional_space" value="0"
-                                       x-model="additionalSpace" @change="updatePreview()"
-                                       class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500"
-                                       {{ old('additional_space', '0') == '0' ? 'checked' : '' }}>
-                                Tidak Aktif
-                            </label>
-                        </div>
-                    </div>
-
                     <!-- Preview -->
                     <div class="mt-6 p-4 bg-uitm-purple-50/40 rounded-lg border border-uitm-purple-100 border-l-4 border-l-uitm-gold-400">
                         <p class="text-xs uppercase tracking-wider font-medium text-uitm-purple-700 mb-1">Pratonton No. Rujukan</p>
@@ -153,15 +132,24 @@
                 nomborFail: '{{ old('nombor_fail', '') }}',
                 perkara: '{{ old('perkara', '') }}',
                 deskripsi: '{{ old('deskripsi', '') }}',
-                additionalSpace: '{{ old('additional_space', '0') }}',
+                space1: {{ $fakulti && $fakulti->additional_space_1 ? 'true' : 'false' }},
+                space2: {{ $fakulti && $fakulti->additional_space_2 ? 'true' : 'false' }},
+                cawangan: {{ $fakulti && $fakulti->additional_cawangan ? 'true' : 'false' }},
                 preview: '',
                 updatePreview() {
-                    const space = this.additionalSpace === '1' ? ' ' : '';
-                    if (this.siri && this.kampus && this.kodBahagian && this.nomborFail) {
-                        this.preview = this.siri + '-' + this.kampus + space + '(' + this.kodBahagian + '. ' + this.nomborFail + ')';
-                    } else {
+                    if (!(this.siri && this.kampus && this.kodBahagian && this.nomborFail)) {
                         this.preview = '—';
+                        return;
                     }
+                    let inner;
+                    if (this.cawangan) {
+                        inner = this.kodBahagian + '.(S)' + this.nomborFail;
+                    } else {
+                        const sep = this.space2 ? '.' : '. ';
+                        inner = this.kodBahagian + sep + this.nomborFail;
+                    }
+                    const gap = this.space1 ? '' : ' ';
+                    this.preview = this.siri + '-' + this.kampus + gap + '(' + inner + ')';
                 }
             };
         }

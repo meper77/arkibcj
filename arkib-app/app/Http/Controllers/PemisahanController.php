@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fail;
+use App\Models\History;
 use App\Models\Pemisahan;
 use App\Services\DocTemplateService;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +31,9 @@ class PemisahanController extends Controller
             ->orderBy('fail_id')
             ->get();
 
-        return view('pemisahan.index', compact('pemisahans', 'allPemisahans'));
+        $fakulti = Auth::user()?->fakultiBahagian;
+
+        return view('pemisahan.index', compact('pemisahans', 'allPemisahans', 'fakulti'));
     }
 
     public function edit(Pemisahan $pemisahan): View
@@ -51,6 +54,10 @@ class PemisahanController extends Controller
             'tujuan_pemisahan' => $request->tujuan_pemisahan,
             'person_in_charge' => Auth::user()->name,
         ]);
+
+        $pemisahan->load('fail.noRujukan');
+        $label = ($pemisahan->fail?->noRujukan?->no_rujukan_full ?? '') . ' Jld.' . ($pemisahan->fail?->jilid ?? '');
+        History::log('Kemaskini Pemisahan', trim($label), 'pemisahan', $pemisahan->id);
 
         return redirect()->route('pemisahan.index')->with('success', 'Rekod pemisahan berjaya dikemaskini.');
     }

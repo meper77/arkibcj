@@ -8,6 +8,8 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
+            @php $canWrite = auth()->user()?->canWrite(); @endphp
+
             @if(session('success'))
                 <div class="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-start gap-3">
                     <svg class="h-5 w-5 mt-0.5 flex-shrink-0 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
@@ -61,6 +63,7 @@
                                 </td>
                                 @if($i === 0)
                                     <td rowspan="{{ $count }}" class="px-3 py-3 align-middle">
+                                        @if($canWrite)
                                         <form method="POST" action="{{ route('pelupusan.kotak-status') }}">
                                             @csrf
                                             @method('PATCH')
@@ -73,12 +76,15 @@
                                                 <option value="DECLINE" {{ $kotakStatus === 'DECLINE' ? 'selected' : '' }}>DECLINE</option>
                                             </select>
                                         </form>
+                                        @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold {{ $kotakStatus === 'APPROVE' ? 'bg-emerald-50 text-emerald-800' : ($kotakStatus === 'DECLINE' ? 'bg-rose-50 text-rose-800' : 'bg-amber-50 text-amber-800') }}">{{ $kotakStatus }}</span>
+                                        @endif
                                     </td>
                                     <td rowspan="{{ $count }}" class="px-3 py-3 align-middle text-sm text-stone-700">
                                         {{ $p->person_in_charge ?? '—' }}
                                     </td>
                                     <td rowspan="{{ $count }}" class="px-3 py-3 align-middle text-right">
-                                        @if($allApprove)
+                                        @if($allApprove && $canWrite)
                                         <form method="POST" action="{{ route('pelupusan.lupus-kotak') }}"
                                               onsubmit="return confirm('Lupus semua fail dalam kotak {{ $kotak }}? Tindakan tidak boleh dibatalkan.')">
                                             @csrf
@@ -126,6 +132,7 @@
                                 <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2.75C5 1.784 5.784 1 6.75 1h6.5c.966 0 1.75.784 1.75 1.75v3.552c.377.046.752.097 1.126.153A2.212 2.212 0 0118 8.653v4.097A2.25 2.25 0 0115.75 15h-.241l.305 1.984A1.75 1.75 0 0114.084 19H5.916a1.75 1.75 0 01-1.73-2.016L4.492 15H4.25A2.25 2.25 0 012 12.75V8.653c0-1.082.775-2.034 1.874-2.198.374-.056.75-.107 1.127-.153V2.75z" clip-rule="evenodd"/></svg>
                                 Cetak Borang Pelupusan
                             </a>
+                            @if($canWrite)
                             <form method="POST" action="{{ route('pelupusan.selepas-kotak') }}"
                                   onsubmit="return confirm('Padam semua rekod selepas pelupusan untuk kotak {{ $kotak }}?')">
                                 @csrf
@@ -136,6 +143,7 @@
                                     Padam
                                 </button>
                             </form>
+                            @endif
                         </div>
                     </div>
                     <div class="overflow-x-auto">

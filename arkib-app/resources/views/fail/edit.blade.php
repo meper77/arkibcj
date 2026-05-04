@@ -51,6 +51,20 @@
                             <input type="text" readonly value="{{ $fail->tarikh_pertama?->format('d/m/Y') }}"
                                    class="block w-full rounded-lg bg-stone-50 border-stone-200 shadow-sm text-sm text-stone-600 cursor-not-allowed">
                         </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-stone-700 mb-1">JENIS FAIL</label>
+                            <input type="text" readonly value="{{ trim(($fail->jenis_fail ?? '—').' '.($fail->kategori ?? '').' '.($fail->sub_kategori ?? '')) }}"
+                                   class="block w-full rounded-lg bg-stone-50 border-stone-200 shadow-sm text-sm text-stone-600 cursor-not-allowed">
+                        </div>
+
+                        @if(!$allowStudentId && $fail->studentIds->count() > 0)
+                        <div>
+                            <label class="block text-sm font-medium text-stone-700 mb-1">STUDENT ID</label>
+                            <input type="text" readonly value="{{ $fail->studentIds->pluck('student_id')->implode(', ') }}"
+                                   class="block w-full rounded-lg bg-stone-50 border-stone-200 shadow-sm text-sm font-mono text-stone-600 cursor-not-allowed">
+                        </div>
+                        @endif
                     </div>
 
                     <div class="border-t border-stone-200 pt-4">
@@ -87,6 +101,31 @@
                                 <input type="text" readonly value="{{ Auth::user()->name }}"
                                        class="block w-full rounded-lg bg-stone-50 border-stone-200 shadow-sm text-sm text-stone-600 cursor-not-allowed">
                             </div>
+
+                            @if($allowStudentId)
+                            <div class="md:col-span-2"
+                                 x-data="{ ids: {{ collect(old('student_ids', $fail->studentIds->pluck('student_id')->all() ?: ['']))->values()->toJson() }} }"
+                                 x-init="if (!ids.length) ids = ['']">
+                                <label class="block text-sm font-medium text-stone-700 mb-1">STUDENT ID</label>
+                                <template x-for="(_, idx) in ids" :key="idx">
+                                    <div class="mt-2 flex gap-2 items-center">
+                                        <input type="text" inputmode="numeric" :name="'student_ids[]'" pattern="\d+"
+                                               x-model="ids[idx]"
+                                               class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition"
+                                               placeholder="0123456789">
+                                        <button type="button" @click="ids.splice(idx,1); if(!ids.length) ids=['']"
+                                                class="px-2 py-1 text-xs text-rose-700 bg-rose-50 ring-1 ring-rose-200 rounded-md hover:bg-rose-100" x-show="ids.length > 1">Buang</button>
+                                    </div>
+                                </template>
+                                <button type="button" @click="ids.push('')"
+                                        class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs text-uitm-purple-700 bg-white ring-1 ring-uitm-purple-200 rounded-md hover:bg-uitm-purple-50">
+                                    + Tambah Student ID
+                                </button>
+                                <x-input-error :messages="$errors->get('student_ids')" class="mt-1" />
+                                <x-input-error :messages="$errors->get('student_ids.*')" class="mt-1" />
+                                <p class="mt-1 text-xs text-stone-500">Nombor sahaja. Boleh tambah lebih dari satu.</p>
+                            </div>
+                            @endif
 
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-stone-700 mb-1">KERTAS-KERTAS YANG BERHUBUNG</label>

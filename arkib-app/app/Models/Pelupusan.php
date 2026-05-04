@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\BelongsToFakulti;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,12 +12,20 @@ class Pelupusan extends Model
 
     protected $fillable = [
         'pemisahan_id',
+        'no_rujukan_id',
+        'jilid',
+        'fakulti_bahagian_id',
         'kotak',
         'tajuk_fail',
         'status',
         'person_in_charge',
         'lupus_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new BelongsToFakulti());
+    }
 
     protected function casts(): array
     {

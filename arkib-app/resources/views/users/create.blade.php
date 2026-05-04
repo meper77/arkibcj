@@ -72,10 +72,14 @@
 
                         <div>
                             <label class="block text-sm font-medium text-stone-700 mb-1">FAKULTI/BAHAGIAN</label>
-                            <input type="text" name="fakulti_bahagian" value="{{ old('fakulti_bahagian') }}"
-                                   x-soft-rule="uppercase"
-                                   class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition">
-                            <x-input-error :messages="$errors->get('fakulti_bahagian')" class="mt-1" />
+                            <select name="fakulti_bahagian_id"
+                                    class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition">
+                                <option value="">— Tiada —</option>
+                                @foreach($fakultis as $fb)
+                                <option value="{{ $fb->id }}" {{ old('fakulti_bahagian_id') == $fb->id ? 'selected' : '' }}>{{ $fb->nama }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('fakulti_bahagian_id')" class="mt-1" />
                         </div>
 
                         <div>

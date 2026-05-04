@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fail;
+use App\Models\History;
 use App\Models\Pelupusan;
 use App\Models\Pemisahan;
 use App\Services\DocTemplateService;
@@ -46,6 +47,8 @@ class PelupusanController extends Controller
 
         $pelupusan->update(['status' => $request->status]);
 
+        History::log('Kemaskini Status Pelupusan', 'Status: ' . $request->status, 'pelupusan', $pelupusan->id);
+
         return redirect()->route('pelupusan.index')->with('success', 'Status berjaya dikemaskini.');
     }
 
@@ -60,6 +63,8 @@ class PelupusanController extends Controller
             ->whereHas('pemisahan.fail', fn($q) => $q->where('kotak', $request->kotak))
             ->update(['status' => $request->status]);
 
+        History::log('Kemaskini Status Kotak Pelupusan', 'Kotak ' . $request->kotak . ' — Status: ' . $request->status, 'pelupusan');
+
         return redirect()->route('pelupusan.index')->with('success', 'Status kotak berjaya dikemaskini.');
     }
 
@@ -73,6 +78,8 @@ class PelupusanController extends Controller
             'lupus_at' => now(),
             'person_in_charge' => Auth::user()->name,
         ]);
+
+        History::log('Lupus Rekod', $pelupusan->tajuk_fail ?: ('Pelupusan #' . $pelupusan->id), 'pelupusan', $pelupusan->id);
 
         return redirect()->route('pelupusan.index')->with('success', 'Rekod berjaya dilupuskan.');
     }
@@ -91,11 +98,14 @@ class PelupusanController extends Controller
         ]);
 
         $kotak = $request->kotak;
+        $disposedCount = 0;
 
-        DB::transaction(function () use ($kotak) {
-            $pelupusans = Pelupusan::with(['pemisahan.fail.noRujukan'])
+        DB::transaction(function () use ($kotak, &$disposedCount) {
+            $pelupusans = Pelupusan::with(['pemisahan.fail' => function ($q) {
+                    $q->withoutGlobalScopes()->with('noRujukan');
+                }])
                 ->whereNull('lupus_at')
-                ->whereHas('pemisahan.fail', fn($q) => $q->where('kotak', $kotak))
+                ->whereHas('pemisahan.fail', fn($q) => $q->withoutGlobalScopes()->where('kotak', $kotak))
                 ->get();
 
             $userName = Auth::user()->name ?? null;
@@ -115,6 +125,9 @@ class PelupusanController extends Controller
                 $p->update([
                     'kotak' => $fail->kotak,
                     'tajuk_fail' => $tajuk,
+                    'no_rujukan_id' => $fail->no_rujukan_id,
+                    'jilid' => $fail->jilid,
+                    'fakulti_bahagian_id' => $fail->fakulti_bahagian_id,
                     'status' => 'LUPUS',
                     'lupus_at' => now(),
                     'person_in_charge' => $userName,
@@ -125,9 +138,12 @@ class PelupusanController extends Controller
             }
 
             if (! empty($failIds)) {
-                Fail::whereIn('id', $failIds)->delete();
+                Fail::withoutGlobalScopes()->whereIn('id', $failIds)->delete();
             }
+            $disposedCount = count($failIds);
         });
+
+        History::log('Lupus Kotak', 'Kotak ' . $kotak . ' — ' . $disposedCount . ' rekod', 'pelupusan');
 
         return redirect()->route('pelupusan.index')
             ->with('success', 'Semua fail dalam kotak ' . $kotak . ' telah dilupuskan.');
@@ -143,6 +159,8 @@ class PelupusanController extends Controller
             ->where('kotak', $request->kotak)
             ->delete();
 
+        History::log('Padam Selepas Pelupusan', 'Kotak ' . $request->kotak, 'pelupusan');
+
         return redirect()->route('pelupusan.index')
             ->with('success', 'Rekod selepas pelupusan bagi kotak ' . $request->kotak . ' telah dipadam.');
     }
@@ -153,13 +171,14 @@ class PelupusanController extends Controller
             'kotak' => ['required', 'string'],
         ]);
 
-        // Pull from pelupusan snapshot so printing works after disposal.
+        // Only include records that have been disposed (selepas pelupusan).
         $pelupusans = Pelupusan::with(['pemisahan.fail.noRujukan'])
+            ->whereNotNull('lupus_at')
             ->where(function ($q) use ($request) {
                 $q->where('kotak', $request->kotak)
                   ->orWhereHas('pemisahan.fail', fn($qq) => $qq->where('kotak', $request->kotak));
             })
-            ->orderBy('created_at')
+            ->orderBy('lupus_at')
             ->get();
 
         $tmp = (new DocTemplateService())->buildPelupusan(

@@ -35,9 +35,14 @@
                     <a href="{{ route('users.index') }}"
                        class="inline-flex items-center px-3 py-2 text-sm font-medium border-b-2 transition duration-150 ease-in-out
                               {{ request()->routeIs('users.*') ? 'border-uitm-purple-700 text-uitm-purple-700 font-semibold' : 'border-transparent text-stone-600 hover:text-uitm-purple-700 hover:border-uitm-gold-400' }}">
-                        Pengguna
+                        Pengurusan
                     </a>
                     @endif
+                    <a href="{{ route('history.index') }}"
+                       class="inline-flex items-center px-3 py-2 text-sm font-medium border-b-2 transition duration-150 ease-in-out
+                              {{ request()->routeIs('history.*') ? 'border-uitm-purple-700 text-uitm-purple-700 font-semibold' : 'border-transparent text-stone-600 hover:text-uitm-purple-700 hover:border-uitm-gold-400' }}">
+                        History
+                    </a>
                 </div>
             </div>
 
@@ -100,9 +105,12 @@
             </x-responsive-nav-link>
             @if(Auth::user()->is_superadmin)
             <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
-                Pengguna
+                Pengurusan
             </x-responsive-nav-link>
             @endif
+            <x-responsive-nav-link :href="route('history.index')" :active="request()->routeIs('history.*')">
+                History
+            </x-responsive-nav-link>
         </div>
 
         <div class="pt-4 pb-1 border-t border-stone-200 bg-stone-50/50">

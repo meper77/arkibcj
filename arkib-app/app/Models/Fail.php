@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\BelongsToFakulti;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Fail extends Model
@@ -19,6 +21,10 @@ class Fail extends Model
         'tarikh_tutup',
         'kotak',
         'person_in_charge',
+        'fakulti_bahagian_id',
+        'jenis_fail',
+        'kategori',
+        'sub_kategori',
     ];
 
     protected function casts(): array
@@ -31,6 +37,11 @@ class Fail extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new BelongsToFakulti());
+    }
+
     public function noRujukan(): BelongsTo
     {
         return $this->belongsTo(NoRujukan::class, 'no_rujukan_id');
@@ -41,9 +52,19 @@ class Fail extends Model
         return $this->hasOne(Pemisahan::class, 'fail_id');
     }
 
+    public function fakultiBahagian(): BelongsTo
+    {
+        return $this->belongsTo(AvailableFakultiBahagian::class, 'fakulti_bahagian_id');
+    }
+
     public function kertasBerhubung(): BelongsTo
     {
         return $this->belongsTo(Fail::class, 'kertas_berhubung_id')->with('noRujukan');
+    }
+
+    public function studentIds(): HasMany
+    {
+        return $this->hasMany(FailStudentId::class, 'fail_id');
     }
 
     public function getKertasBerhubungLabelAttribute(): ?string

@@ -41,7 +41,7 @@
                     </div>
                     <div>
                         <dt class="text-xs text-uitm-purple-700 uppercase font-medium tracking-wider">Fakulti/Bahagian</dt>
-                        <dd class="mt-0.5 text-sm text-stone-900">{{ $user->fakulti_bahagian ?? '—' }}</dd>
+                        <dd class="mt-0.5 text-sm text-stone-900">{{ $user->fakultiBahagian->nama ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-uitm-purple-700 uppercase font-medium tracking-wider">Jawatan</dt>
@@ -79,9 +79,24 @@
                         </div>
 
                         <div>
-                            <x-input-label for="fakulti_bahagian" :value="__('Fakulti/Bahagian')" />
-                            <x-text-input id="fakulti_bahagian" name="fakulti_bahagian" type="text" class="mt-1 block w-full" :value="old('fakulti_bahagian', $user->fakulti_bahagian)" x-soft-rule="uppercase" />
-                            <x-input-error class="mt-1" :messages="$errors->get('fakulti_bahagian')" />
+                            <x-input-label for="fakulti_bahagian_id" :value="__('Fakulti/Bahagian')" />
+                            @if($user->is_superadmin)
+                                <select id="fakulti_bahagian_id" name="fakulti_bahagian_id"
+                                        class="mt-1 block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition">
+                                    <option value="">— Tiada —</option>
+                                    @foreach($fakultis as $f)
+                                        <option value="{{ $f->id }}" {{ old('fakulti_bahagian_id', $user->fakulti_bahagian_id) == $f->id ? 'selected' : '' }}>
+                                            {{ $f->nama }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error class="mt-1" :messages="$errors->get('fakulti_bahagian_id')" />
+                            @else
+                                <input id="fakulti_bahagian_id" type="text" disabled readonly
+                                       value="{{ $user->fakultiBahagian->nama ?? '' }}"
+                                       class="mt-1 block w-full rounded-lg bg-stone-100 border-stone-200 shadow-sm text-sm text-stone-500 cursor-not-allowed">
+                                <p class="mt-1 text-xs text-stone-500">Hanya superadmin boleh menukar fakulti/bahagian melalui Pengurusan.</p>
+                            @endif
                         </div>
                     </div>
 
@@ -177,6 +192,7 @@
                     @php
                         $otherUsers = \App\Models\User::where('id', '!=', $user->id)
                             ->where('is_superadmin', false)
+                            ->where('fakulti_bahagian_id', $user->fakulti_bahagian_id)
                             ->orderBy('name')
                             ->get();
                     @endphp

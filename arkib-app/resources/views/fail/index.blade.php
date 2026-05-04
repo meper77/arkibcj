@@ -31,7 +31,14 @@
             </div>
 
             <!-- Action Buttons -->
+            @php
+                $canWrite = auth()->user()?->canWrite();
+                $activeJenis = $jenis ?? null;
+                $activeKat = $kategori ?? null;
+                $activeSub = $sub ?? null;
+            @endphp
             <div class="flex flex-wrap gap-2 mb-4">
+                @if($canWrite)
                 <a href="{{ route('fail.create') }}"
                    class="inline-flex items-center gap-2 px-4 py-2 bg-uitm-purple-700 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-uitm-purple-800 focus:outline-none focus:ring-2 focus:ring-uitm-purple-500 focus:ring-offset-1 transition">
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a.75.75 0 01.75.75v3.5h3.5a.75.75 0 010 1.5h-3.5v3.5a.75.75 0 01-1.5 0v-3.5h-3.5a.75.75 0 010-1.5h3.5v-3.5A.75.75 0 0110 5z" clip-rule="evenodd"/></svg>
@@ -43,6 +50,7 @@
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
                     Batch (xlsx)
                 </button>
+                @endif
 
                 <button type="button" onclick="toggleSelectMode()" id="selectBtn"
                         class="inline-flex items-center gap-2 px-4 py-2 text-uitm-purple-700 text-sm font-medium rounded-lg hover:bg-uitm-purple-50 transition">
@@ -50,10 +58,12 @@
                     Pilih
                 </button>
 
+                @if($canWrite)
                 <button type="button" onclick="deleteSelected()" id="deleteBtn"
                         class="hidden inline-flex items-center gap-2 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-rose-700 transition">
                     Padam Dipilih
                 </button>
+                @endif
 
                 <button type="button" onclick="printSelected()" id="printBtn"
                         class="hidden inline-flex items-center gap-2 px-4 py-2 bg-uitm-purple-700 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-uitm-purple-800 transition">
@@ -64,6 +74,73 @@
                         class="hidden inline-flex items-center px-4 py-2 bg-stone-100 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-200 transition">
                     Batal
                 </button>
+            </div>
+
+            <!-- JENIS FAIL Filter -->
+            <div class="mb-4 flex flex-wrap gap-2 items-center">
+                <span class="text-xs uppercase tracking-wider font-medium text-stone-500">Jenis Fail:</span>
+
+                @if($fakulti && $fakulti->fail_am)
+                    <a href="{{ route('fail.index', ['jenis' => 'AM']) }}"
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition {{ $activeJenis === 'AM' ? 'bg-uitm-purple-700 text-white' : 'bg-white text-uitm-purple-700 ring-1 ring-uitm-purple-200 hover:bg-uitm-purple-50' }}">
+                        AM
+                    </a>
+                @endif
+                @if($fakulti && $fakulti->fail_sulit)
+                    <a href="{{ route('fail.index', ['jenis' => 'SULIT']) }}"
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition {{ $activeJenis === 'SULIT' ? 'bg-uitm-purple-700 text-white' : 'bg-white text-uitm-purple-700 ring-1 ring-uitm-purple-200 hover:bg-uitm-purple-50' }}">
+                        SULIT
+                    </a>
+                @endif
+
+                @if($activeJenis === 'SULIT')
+                    <span class="text-stone-300">›</span>
+                    @if($fakulti && $fakulti->fail_staff)
+                        <a href="{{ route('fail.index', ['jenis' => 'SULIT', 'kategori' => 'STAFF']) }}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition {{ $activeKat === 'STAFF' ? 'bg-uitm-purple-700 text-white' : 'bg-white text-uitm-purple-700 ring-1 ring-uitm-purple-200 hover:bg-uitm-purple-50' }}">
+                            STAFF
+                        </a>
+                    @endif
+                    @if($fakulti && $fakulti->fail_pelajar)
+                        <a href="{{ route('fail.index', ['jenis' => 'SULIT', 'kategori' => 'PELAJAR']) }}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition {{ $activeKat === 'PELAJAR' ? 'bg-uitm-purple-700 text-white' : 'bg-white text-uitm-purple-700 ring-1 ring-uitm-purple-200 hover:bg-uitm-purple-50' }}">
+                            PELAJAR
+                        </a>
+                    @endif
+                @endif
+
+                @if($activeJenis === 'SULIT' && $activeKat === 'STAFF')
+                    <span class="text-stone-300">›</span>
+                    @if($fakulti && $fakulti->fail_akademik)
+                        <a href="{{ route('fail.index', ['jenis' => 'SULIT', 'kategori' => 'STAFF', 'sub' => 'AKADEMIK']) }}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition {{ $activeSub === 'AKADEMIK' ? 'bg-uitm-purple-700 text-white' : 'bg-white text-uitm-purple-700 ring-1 ring-uitm-purple-200 hover:bg-uitm-purple-50' }}">
+                            AKADEMIK
+                        </a>
+                    @endif
+                    @if($fakulti && $fakulti->fail_pentadbiran)
+                        <a href="{{ route('fail.index', ['jenis' => 'SULIT', 'kategori' => 'STAFF', 'sub' => 'PENTADBIRAN']) }}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition {{ $activeSub === 'PENTADBIRAN' ? 'bg-uitm-purple-700 text-white' : 'bg-white text-uitm-purple-700 ring-1 ring-uitm-purple-200 hover:bg-uitm-purple-50' }}">
+                            PENTADBIRAN
+                        </a>
+                    @endif
+                @endif
+
+                @if($activeJenis)
+                    @php
+                        $kembali = ['jenis' => $activeJenis];
+                        if ($activeSub) {
+                            $kembali = ['jenis' => $activeJenis, 'kategori' => $activeKat];
+                        } elseif ($activeKat) {
+                            $kembali = ['jenis' => $activeJenis];
+                        } else {
+                            $kembali = [];
+                        }
+                    @endphp
+                    <a href="{{ route('fail.index', $kembali) }}"
+                       class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 transition">
+                        Kembali
+                    </a>
+                @endif
             </div>
 
             <!-- Search Box -->
@@ -80,6 +157,7 @@
                     <option value="8">Kotak</option>
                     <option value="9">Person in Charge</option>
                     <option value="10">Kertas-Kertas Yang Berhubung</option>
+                    <option value="student">Student ID</option>
                 </select>
                 <div class="relative flex-1 min-w-[200px] sm:max-w-md">
                     <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
@@ -118,8 +196,9 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-stone-200">
                             @forelse($fails as $i => $fail)
-                            <tr class="hover:bg-uitm-purple-50/30 even:bg-stone-50/40 cursor-pointer transition-colors"
-                                onclick="rowClick(event, '{{ route('fail.edit', $fail) }}')">
+                            <tr class="hover:bg-uitm-purple-50/30 even:bg-stone-50/40 {{ $canWrite ? 'cursor-pointer' : '' }} transition-colors"
+                                data-student-id="{{ $fail->studentIds->pluck('student_id')->implode(' ') }}"
+                                @if($canWrite) onclick="rowClick(event, '{{ route('fail.edit', $fail) }}')" @endif>
                                 <td class="px-3 py-3">
                                     <input type="checkbox" name="ids[]" value="{{ $fail->id }}"
                                            class="row-checkbox hidden rounded border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500" onclick="event.stopPropagation()">
@@ -141,7 +220,7 @@
                                     <div class="flex flex-col items-center gap-3 text-stone-400">
                                         <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"/></svg>
                                         <p class="text-sm font-medium">Tiada rekod fail</p>
-                                        <a href="{{ route('fail.create') }}" class="text-xs text-uitm-purple-700 hover:underline">Daftar fail pertama</a>
+                                        @if($canWrite)<a href="{{ route('fail.create') }}" class="text-xs text-uitm-purple-700 hover:underline">Daftar fail pertama</a>@endif
                                     </div>
                                 </td>
                             </tr>
@@ -239,17 +318,22 @@
 
             function runFilter() {
                 const q = searchInput.value.trim().toLowerCase();
-                const colIdx = parseInt(colSelect.value, 10);
+                const colVal = colSelect.value;
+                const colIdx = parseInt(colVal, 10);
                 const exact = exactChk.checked;
                 table.querySelectorAll('tbody tr').forEach(row => {
                     const cells = row.querySelectorAll('td');
+                    const studentId = (row.dataset.studentId || '').toLowerCase();
                     let text = '';
-                    if (colIdx >= 0 && cells[colIdx]) {
+                    if (colVal === 'student') {
+                        text = studentId;
+                    } else if (colIdx >= 0 && cells[colIdx]) {
                         text = (cells[colIdx].textContent || '').trim().toLowerCase();
                     } else {
                         row.querySelectorAll('td:not(.no-search)').forEach(c => {
                             text += ' ' + (c.textContent || '');
                         });
+                        text += ' ' + studentId;
                         text = text.toLowerCase();
                     }
                     const match = q === '' || (exact ? text === q : text.includes(q));

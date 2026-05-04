@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AvailableFakultiBahagian;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,28 +15,39 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): View
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $user = $request->user();
+        $fakultis = $user->is_superadmin
+            ? AvailableFakultiBahagian::orderBy('nama')->get()
+            : collect();
+
+        return view('profile.edit', compact('user', 'fakultis'));
     }
 
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
 
-        $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'kampus' => ['required', 'string', 'max:255'],
             'cawangan' => ['nullable', 'string', 'max:255'],
-            'fakulti_bahagian' => ['nullable', 'string', 'max:255'],
-        ]);
+        ];
+        if ($user->is_superadmin) {
+            $rules['fakulti_bahagian_id'] = ['nullable', 'integer', Rule::exists('available_fakulti_bahagian', 'id')];
+        }
 
-        $user->update([
+        $validated = $request->validate($rules);
+
+        $payload = [
             'name' => $request->name,
             'kampus' => $request->kampus,
             'cawangan' => $request->cawangan ?: null,
-            'fakulti_bahagian' => $request->fakulti_bahagian ?: null,
-        ]);
+        ];
+        if ($user->is_superadmin) {
+            $payload['fakulti_bahagian_id'] = $request->fakulti_bahagian_id ?: null;
+        }
+
+        $user->update($payload);
 
         return redirect()->route('profile.edit')->with('status', 'profile-updated');
     }
@@ -70,6 +82,10 @@ class ProfileController extends Controller
 
         if ($targetUser->position && $targetUser->position !== $currentUser->position) {
             return back()->withErrors(['transfer' => 'Pengguna sasaran sudah mempunyai jawatan lain.']);
+        }
+
+        if ($targetUser->fakulti_bahagian_id !== $currentUser->fakulti_bahagian_id) {
+            return back()->withErrors(['transfer' => 'Jawatan hanya boleh dipindahkan kepada pengguna dalam fakulti/bahagian yang sama.']);
         }
 
         $position = $currentUser->position;

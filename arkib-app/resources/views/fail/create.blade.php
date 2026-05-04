@@ -28,7 +28,22 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('fail.store') }}" x-data class="space-y-4">
+                <form method="POST" action="{{ route('fail.store') }}"
+                      x-data="{
+                          jenis: '{{ old('jenis_fail', '') }}',
+                          kategori: '{{ old('kategori', '') }}',
+                          sub: '{{ old('sub_kategori', '') }}',
+                          permAm: {{ $fakulti && $fakulti->fail_am ? 'true' : 'false' }},
+                          permSulit: {{ $fakulti && $fakulti->fail_sulit ? 'true' : 'false' }},
+                          permPelajar: {{ $fakulti && $fakulti->fail_pelajar ? 'true' : 'false' }},
+                          permStaff: {{ $fakulti && $fakulti->fail_staff ? 'true' : 'false' }},
+                          permAkademik: {{ $fakulti && $fakulti->fail_akademik ? 'true' : 'false' }},
+                          permPentadbiran: {{ $fakulti && $fakulti->fail_pentadbiran ? 'true' : 'false' }},
+                          permStudentId: {{ $fakulti && $fakulti->student_id ? 'true' : 'false' }},
+                          showStudentId() {
+                              return this.jenis === 'SULIT' && this.kategori === 'PELAJAR' && this.permStudentId;
+                          }
+                      }" class="space-y-4">
                     @csrf
 
                     <!-- NO. RUJUKAN -->
@@ -65,6 +80,96 @@
                                    value="{{ old('tarikh_pertama') }}"
                                    class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition">
                             <x-input-error :messages="$errors->get('tarikh_pertama')" class="mt-1" />
+                        </div>
+                    </div>
+
+                    <!-- JENIS FAIL -->
+                    <div class="border-t border-stone-200 pt-4">
+                        <label class="block text-sm font-medium text-stone-700 mb-2">JENIS FAIL <span class="text-uitm-purple-700">*</span></label>
+                        <div class="flex flex-wrap gap-3 text-sm">
+                            <template x-if="permAm">
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="jenis_fail" value="AM" x-model="jenis"
+                                           @change="kategori=''; sub=''"
+                                           class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500">
+                                    AM
+                                </label>
+                            </template>
+                            <template x-if="permSulit">
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="jenis_fail" value="SULIT" x-model="jenis"
+                                           class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500">
+                                    SULIT
+                                </label>
+                            </template>
+                        </div>
+
+                        <!-- KATEGORI (when SULIT) -->
+                        <div x-show="jenis === 'SULIT'" x-cloak class="mt-3 ml-4 pl-3 border-l-2 border-uitm-gold-300">
+                            <label class="block text-sm font-medium text-stone-700 mb-2">KATEGORI <span class="text-uitm-purple-700">*</span></label>
+                            <div class="flex flex-wrap gap-3 text-sm">
+                                <template x-if="permStaff">
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="kategori" value="STAFF" x-model="kategori"
+                                               @change="sub=''"
+                                               class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500">
+                                        STAFF
+                                    </label>
+                                </template>
+                                <template x-if="permPelajar">
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="kategori" value="PELAJAR" x-model="kategori"
+                                               @change="sub=''"
+                                               class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500">
+                                        PELAJAR
+                                    </label>
+                                </template>
+                            </div>
+
+                            <!-- SUB-KATEGORI (when STAFF) -->
+                            <div x-show="kategori === 'STAFF'" x-cloak class="mt-3 ml-4 pl-3 border-l-2 border-uitm-gold-300">
+                                <label class="block text-sm font-medium text-stone-700 mb-2">SUB-KATEGORI <span class="text-uitm-purple-700">*</span></label>
+                                <div class="flex flex-wrap gap-3 text-sm">
+                                    <template x-if="permAkademik">
+                                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="sub_kategori" value="AKADEMIK" x-model="sub"
+                                                   class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500">
+                                            AKADEMIK
+                                        </label>
+                                    </template>
+                                    <template x-if="permPentadbiran">
+                                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="sub_kategori" value="PENTADBIRAN" x-model="sub"
+                                                   class="border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500">
+                                            PENTADBIRAN
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- STUDENT IDs (when PELAJAR + permission) -->
+                            <div x-show="showStudentId()" x-cloak class="mt-3 ml-4 pl-3 border-l-2 border-uitm-gold-300"
+                                 x-data="{ ids: {{ collect(old('student_ids', [''])) ->filter(fn($v)=>$v!==null)->values()->toJson() }} }"
+                                 x-init="if (!ids.length) ids = ['']">
+                                <label class="block text-sm font-medium text-stone-700 mb-1">STUDENT ID <span class="text-uitm-purple-700">*</span></label>
+                                <template x-for="(_, idx) in ids" :key="idx">
+                                    <div class="mt-2 flex gap-2 items-center">
+                                        <input type="text" inputmode="numeric" :name="'student_ids[]'" pattern="\d+"
+                                               x-model="ids[idx]"
+                                               class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition"
+                                               placeholder="0123456789">
+                                        <button type="button" @click="ids.splice(idx,1); if(!ids.length) ids=['']"
+                                                class="px-2 py-1 text-xs text-rose-700 bg-rose-50 ring-1 ring-rose-200 rounded-md hover:bg-rose-100" x-show="ids.length > 1">Buang</button>
+                                    </div>
+                                </template>
+                                <button type="button" @click="ids.push('')"
+                                        class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs text-uitm-purple-700 bg-white ring-1 ring-uitm-purple-200 rounded-md hover:bg-uitm-purple-50">
+                                    + Tambah Student ID
+                                </button>
+                                <x-input-error :messages="$errors->get('student_ids')" class="mt-1" />
+                                <x-input-error :messages="$errors->get('student_ids.*')" class="mt-1" />
+                                <p class="mt-1 text-xs text-stone-500">Nombor sahaja. Boleh tambah lebih dari satu.</p>
+                            </div>
                         </div>
                     </div>
 
