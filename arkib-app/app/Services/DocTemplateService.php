@@ -293,68 +293,108 @@ class DocTemplateService
     {
         $tp = $this->newProcessor('BorangPenilaianRekod.docx');
         $count = $fails->count();
-
-        if ($count > 1) {
-            $tp->cloneRow('bil', 1);
-            $bil = [];
-            $rujukan = [];
-            $tajuk = [];
-            $dibuka = [];
-            $ditutup = [];
-            $taraf = [];
-            $bilFolio = [];
-            $musnah = [];
-            $catatan = [];
-            $i = 0;
-            foreach ($fails as $f) {
-                $i++;
-                $base = (string)($f->noRujukan->no_rujukan_full ?? '');
-                $jilid = (int)($f->jilid ?? 1);
-                $rujukan[] = $jilid > 1 ? "$base Jld.$jilid" : $base;
-                $bil[] = $i . '.';
-                $tajuk[] = ($f->noRujukan->perkara ?? '') . ($jilid > 1 ? " Jld.$jilid" : '');
-                $dibuka[] = optional($f->tarikh_pertama)->format('d/m/Y') ?? '-';
-                $ditutup[] = optional($f->tarikh_akhir)->format('d/m/Y') ?? '-';
-                $taraf[] = '-';
-                $bilFolio[] = '-';
-                $musnah[] = '-';
-                $catatan[] = '-';
-            }
-            $br = '</w:t><w:br/><w:t>';
-            $tp->setValue('bil#1', implode($br, $bil));
-            $tp->setValue('rujukan_fail#1', implode($br, $rujukan));
-            $tp->setValue('tajuk#1', implode($br, $tajuk));
-            $tp->setValue('dibuka#1', implode($br, $dibuka));
-            $tp->setValue('ditutup#1', implode($br, $ditutup));
-            $tp->setValue('taraf#1', implode($br, $taraf));
-            $tp->setValue('bil_folio#1', implode($br, $bilFolio));
-            $tp->setValue('musnah#1', implode($br, $musnah));
-            $tp->setValue('catatan#1', implode($br, $catatan));
-            return $this->saveTmp($tp, 'penilaian');
-        }
-
         $rows = max(1, $count);
         $tp->cloneRow('bil', $rows);
+
         $i = 0;
         foreach ($fails as $f) {
             $i++;
+            $base = (string)($f->noRujukan->no_rujukan_full ?? '');
             $jilid = (int)($f->jilid ?? 1);
+            $rujukan = $jilid > 1 ? "$base Jld.$jilid" : $base;
             $tajuk = ($f->noRujukan->perkara ?? '') . ($jilid > 1 ? " Jld.$jilid" : '');
-            $tp->setValue('bil#'.$i, (string)$i);
-            $tp->setValue('rujukan_fail#'.$i, (string)($f->noRujukan->no_rujukan_full ?? ''));
+            $tp->setValue('bil#'.$i, $i.'.');
+            $tp->setValue('rujukan_fail#'.$i, $rujukan);
             $tp->setValue('tajuk#'.$i, $tajuk);
             $tp->setValue('dibuka#'.$i, optional($f->tarikh_pertama)->format('d/m/Y') ?? '-');
             $tp->setValue('ditutup#'.$i, optional($f->tarikh_akhir)->format('d/m/Y') ?? '-');
             $tp->setValue('taraf#'.$i, '-');
             $tp->setValue('bil_folio#'.$i, '-');
             $tp->setValue('musnah#'.$i, '-');
-            $tp->setValue('catatan#'.$i, '');
+            $tp->setValue('catatan#'.$i, '-');
         }
         if ($fails->isEmpty()) {
             foreach (['bil','rujukan_fail','tajuk','dibuka','ditutup','taraf','bil_folio','musnah','catatan'] as $k) {
                 $tp->setValue($k.'#1','');
             }
         }
-        return $this->saveTmp($tp, 'penilaian');
+
+        $path = $this->saveTmp($tp, 'penilaian');
+        $this->mergeClonedRows($path, $rows);
+        return $path;
+    }
+
+    /**
+     * For each cloned data row:
+     *   1. strip filler empty paragraphs so it stays compact
+     *   2. suppress the horizontal borders BETWEEN data rows (top of every row
+     *      after the first, bottom of every row before the last) so the cloned
+     *      rows visually merge into the template's single-tall-row look while
+     *      each record stays in its own internal row for alignment.
+     */
+    private function mergeClonedRows(string $docxPath, int $dataRowCount): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($docxPath) !== true) return;
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) { $zip->close(); return; }
+
+        preg_match_all('#<w:tr\b.*?</w:tr>#s', $xml, $rowMatches, PREG_OFFSET_CAPTURE);
+        $rows = $rowMatches[0];
+        $totalRows = count($rows);
+        $startIdx = $totalRows - $dataRowCount;
+        if ($startIdx < 0) { $zip->close(); return; }
+
+        $newXml = '';
+        $cursor = 0;
+        for ($idx = 0; $idx < $totalRows; $idx++) {
+            [$rowXml, $offset] = $rows[$idx];
+            $newXml .= substr($xml, $cursor, $offset - $cursor);
+            if ($idx >= $startIdx) {
+                $isFirstData = $idx === $startIdx;
+                $isLastData = $idx === $totalRows - 1;
+                $rowXml = preg_replace_callback('#<w:tc\b.*?</w:tc>#s', function ($m) use ($isFirstData, $isLastData) {
+                    $tc = $m[0];
+                    preg_match_all('#<w:p\b.*?</w:p>#s', $tc, $pm);
+                    $paragraphs = $pm[0];
+                    if (count($paragraphs) > 1) {
+                        $kept = [];
+                        foreach ($paragraphs as $p) {
+                            if (preg_match('#<w:t[^>]*>[^<]+</w:t>#', $p)) $kept[] = $p;
+                        }
+                        if (empty($kept)) $kept = [$paragraphs[0]];
+                        $rebuilt = implode('', $kept);
+                        $tc = preg_replace('#(<w:p\b.*?</w:p>)+#s', $rebuilt, $tc, 1);
+                    }
+                    if (!$isFirstData || !$isLastData) {
+                        $borderParts = '';
+                        if (!$isFirstData) $borderParts .= '<w:top w:val="nil"/>';
+                        if (!$isLastData)  $borderParts .= '<w:bottom w:val="nil"/>';
+                        $borders = '<w:tcBorders>' . $borderParts . '</w:tcBorders>';
+                        if (preg_match('#<w:tcPr>(.*?)</w:tcPr>#s', $tc, $pp)) {
+                            $tc = str_replace($pp[0], '<w:tcPr>' . $borders . $pp[1] . '</w:tcPr>', $tc);
+                        } else {
+                            $tc = preg_replace('#(<w:tc\b[^>]*>)#', '$1<w:tcPr>' . $borders . '</w:tcPr>', $tc, 1);
+                        }
+                    }
+                    return $tc;
+                }, $rowXml);
+
+                // Force a minimum row height so empty trailing rows are clearly visible.
+                $heightTag = '<w:trHeight w:val="500" w:hRule="atLeast"/>';
+                if (preg_match('#<w:trPr>(.*?)</w:trPr>#s', $rowXml, $pp)) {
+                    $existing = preg_replace('#<w:trHeight[^/]*/>#', '', $pp[1]);
+                    $rowXml = str_replace($pp[0], '<w:trPr>' . $existing . $heightTag . '</w:trPr>', $rowXml);
+                } else {
+                    $rowXml = preg_replace('#(<w:tr\b[^>]*>)#', '$1<w:trPr>' . $heightTag . '</w:trPr>', $rowXml, 1);
+                }
+            }
+            $newXml .= $rowXml;
+            $cursor = $offset + strlen($rows[$idx][0]);
+        }
+        $newXml .= substr($xml, $cursor);
+
+        $zip->addFromString('word/document.xml', $newXml);
+        $zip->close();
     }
 }

@@ -199,20 +199,20 @@
                             <tr class="hover:bg-uitm-purple-50/30 even:bg-stone-50/40 {{ $canWrite ? 'cursor-pointer' : '' }} transition-colors"
                                 data-student-id="{{ $fail->studentIds->pluck('student_id')->implode(' ') }}"
                                 @if($canWrite) onclick="rowClick(event, '{{ route('fail.edit', $fail) }}')" @endif>
-                                <td class="px-3 py-3">
+                                <td class="px-3 py-3 align-top">
                                     <input type="checkbox" name="ids[]" value="{{ $fail->id }}"
                                            class="row-checkbox hidden rounded border-stone-300 text-uitm-purple-700 focus:ring-uitm-purple-500" onclick="event.stopPropagation()">
                                 </td>
-                                <td class="px-3 py-3 text-sm text-stone-500 text-right tabular-nums no-search">{{ $i + 1 }}</td>
-                                <td class="px-3 py-3 text-sm font-mono text-uitm-purple-700 font-medium">{{ $fail->noRujukan->no_rujukan_full }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->noRujukan->perkara }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700 tabular-nums">{{ $fail->jilid }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_pertama?->format('d/m/Y') }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_akhir?->format('d/m/Y') ?? '—' }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_tutup?->format('d/m/Y') ?? '—' }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->kotak ?? '—' }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->person_in_charge }}</td>
-                                <td class="px-3 py-3 text-sm text-stone-700">{{ $fail->kertas_berhubung_label ?? '-' }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-500 text-right tabular-nums no-search">{{ $i + 1 }}</td>
+                                <td class="px-3 py-3 align-top text-sm font-mono text-uitm-purple-700 font-medium">{{ $fail->noRujukan->no_rujukan_full }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700">{{ $fail->noRujukan->perkara }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700 tabular-nums">{{ $fail->jilid }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_pertama?->format('d/m/Y') }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_akhir?->format('d/m/Y') ?? '—' }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700 tabular-nums">{{ $fail->tarikh_tutup?->format('d/m/Y') ?? '—' }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700">{{ $fail->kotak ?? '—' }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700">{{ $fail->person_in_charge }}</td>
+                                <td class="px-3 py-3 align-top text-sm text-stone-700">{{ $fail->kertas_berhubung_label ?? '-' }}</td>
                             </tr>
                             @empty
                             <tr>

@@ -14,9 +14,15 @@
         .meta-table { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
         .meta-table td { padding: 4px 8px; font-size: 10pt; vertical-align: top; }
         .meta-table .label { font-weight: bold; width: 55%; }
-        table.records { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        table.records { width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: fixed; }
         table.records th { background-color: #660000; color: white; padding: 6px 8px; font-size: 10pt; text-align: left; border: 1px solid #660000; }
-        table.records td { padding: 5px 8px; font-size: 10pt; border: 1px solid #ccc; vertical-align: top; }
+        table.records td { padding: 5px 8px; font-size: 10pt; border: 1px solid #ccc; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
+        table.records col.bil { width: 7%; }
+        table.records col.no-fail { width: 22%; }
+        table.records col.tajuk { width: 36%; }
+        table.records col.tarikh { width: 14%; }
+        table.records col.pic { width: 21%; }
+        table.records td.nowrap { white-space: nowrap; }
         .sign-section { margin-top: 40px; display: flex; justify-content: space-between; }
         .sign-box { width: 45%; }
         .sign-line { border-top: 1px solid #000; margin-top: 40px; }
@@ -75,6 +81,13 @@
         </table>
 
         <table class="records">
+            <colgroup>
+                <col class="bil">
+                <col class="no-fail">
+                <col class="tajuk">
+                <col class="tarikh">
+                <col class="pic">
+            </colgroup>
             <thead>
                 <tr>
                     <th>BIL.</th>
@@ -90,7 +103,7 @@
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $p->pemisahan->fail->noRujukan->no_rujukan_full }}</td>
                     <td>{{ $p->pemisahan->fail->noRujukan->perkara }} — Jilid {{ $p->pemisahan->fail->jilid }}</td>
-                    <td>{{ $p->lupus_at?->format('d/m/Y') ?? '—' }}</td>
+                    <td class="nowrap">{{ $p->lupus_at?->format('d/m/Y') ?? '—' }}</td>
                     <td>{{ $p->person_in_charge ?? '—' }}</td>
                 </tr>
                 @endforeach

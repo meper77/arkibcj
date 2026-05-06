@@ -1,9 +1,15 @@
 # fixBugs.md
 - add the following new features
 
-## HISTORY(FIFTH-PAGE)
-- reverse chronological time
-- desgin vertically
-- have who? action? when?
-- for each department isolately
-- only superadmin can delete specific history
+## Pemisahan Rekod
+- print table must like below
+
+|------------------------------------------------------------------------------------|
+|BIL.|NO. FAIL|TAJUK FAIL|TARIKH PEMISAHAN|TEMPOH SIMPANAN|TUJUAN PEMISAHAN|NO. KOTAK|
+|    |        |          |                |               |DIBUKA | DITUTUP|         |
+|------------------------------------------------------------------------------------|
+| 1  |   X    |    X     |       X        |       X       |   X   |    X   |    X    |
+| 2  |   X    |    X     |       X        |       X       |   X   |    X   |    X    |
+|    |        |          |                |               |       |        |         |
+|    |        |          |                |               |       |        |         |
+|------------------------------------------------------------------------------------|
