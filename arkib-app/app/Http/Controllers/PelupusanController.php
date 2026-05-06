@@ -19,10 +19,12 @@ class PelupusanController extends Controller
     public function index(): View
     {
         // Pending: pelupusan rows not yet disposed. Group by fail.kotak.
+        // We include kotaks whose pemisahan rows are still incomplete
+        // (missing tarikh_pemisahan or tujuan_pemisahan); the view greys
+        // out the lupus actions until every pemisahan in the kotak is
+        // completely filled.
         $pending = Pelupusan::with(['pemisahan.fail.noRujukan'])
             ->whereNull('lupus_at')
-            ->whereHas('pemisahan', fn($q) => $q->whereNotNull('tarikh_pemisahan')
-                ->whereNotNull('tujuan_pemisahan'))
             ->whereHas('pemisahan.fail')
             ->orderBy('created_at')
             ->get()
@@ -99,6 +101,16 @@ class PelupusanController extends Controller
 
         $kotak = $request->kotak;
         $disposedCount = 0;
+
+        // Refuse if any pemisahan in this kotak is still incomplete.
+        $incomplete = Pelupusan::whereNull('lupus_at')
+            ->whereHas('pemisahan.fail', fn($q) => $q->where('kotak', $kotak))
+            ->whereHas('pemisahan', fn($q) => $q->whereNull('tarikh_pemisahan')
+                ->orWhereNull('tujuan_pemisahan'))
+            ->exists();
+        if ($incomplete) {
+            return back()->withErrors(['lupus' => 'Pemisahan rekod untuk kotak ini belum lengkap.']);
+        }
 
         DB::transaction(function () use ($kotak, &$disposedCount) {
             $pelupusans = Pelupusan::with(['pemisahan.fail' => function ($q) {

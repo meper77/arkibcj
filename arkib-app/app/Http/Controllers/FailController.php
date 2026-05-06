@@ -185,7 +185,20 @@ class FailController extends Controller
         $request->validate([
             'tarikh_akhir' => ['nullable', 'date', 'after_or_equal:' . $fail->tarikh_pertama],
             'tarikh_tutup' => ['nullable', 'date'],
-            'kotak' => ['nullable', 'string'],
+            'kotak' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $failCb) use ($fail) {
+                    if ($value === null || $value === '') return;
+                    $disposed = \App\Models\Pelupusan::whereNotNull('lupus_at')
+                        ->where('kotak', $value)
+                        ->where('fakulti_bahagian_id', $fail->fakulti_bahagian_id)
+                        ->exists();
+                    if ($disposed) {
+                        $failCb('No. Kotak ini telah dilupuskan dan tidak boleh digunakan semula.');
+                    }
+                },
+            ],
             'kertas_berhubung_id' => ['nullable', 'integer', Rule::exists('fail', 'id')->where(fn($q) => $q->where('no_rujukan_id', $fail->no_rujukan_id)->where('id', '!=', $fail->id))],
             'student_ids' => ['nullable', 'array'],
             'student_ids.*' => ['nullable', 'string', 'regex:/^\d+$/'],

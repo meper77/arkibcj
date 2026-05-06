@@ -66,8 +66,15 @@ class PemisahanController extends Controller
     {
         return Pemisahan::with(['fail.noRujukan'])
             ->whereHas('fail', fn($q) => $q->where('kotak', $kotak))
-            ->orderBy('fail_id')
-            ->get();
+            ->get()
+            ->sortBy([
+                fn($a, $b) => strcmp(
+                    (string) ($a->fail?->noRujukan?->no_rujukan_full ?? ''),
+                    (string) ($b->fail?->noRujukan?->no_rujukan_full ?? '')
+                ),
+                fn($a, $b) => ((int) ($a->fail?->jilid ?? 0)) <=> ((int) ($b->fail?->jilid ?? 0)),
+            ])
+            ->values();
     }
 
     public function printPemisahan(Request $request): BinaryFileResponse

@@ -95,7 +95,9 @@ class DocTemplateService
         $tp->setValue('kotak', (string) $kotak);
         $tp->setValue('tarikh', optional($first?->tarikh_pemisahan)->format('d/m/Y') ?? now()->format('d/m/Y'));
         $tp->setValue('user', (string) ($user->name ?? ''));
-        $tp->setValue('tujuan', (string) ($first?->tujuan_pemisahan ?? ''));
+        // Kumpulan Rekod (${tujuan}) is left blank for manual fill —
+        // it is not derived from tujuan_pemisahan.
+        $tp->setValue('tujuan', '');
 
         $rows = max(1, $pemisahans->count());
         $tp->cloneRow('bil', $rows);
@@ -133,13 +135,42 @@ class DocTemplateService
      */
     private function fillFailList(TemplateProcessor $tp, $pemisahans, int $maxFailTokens): void
     {
-        $i = 0;
+        // Group consecutive entries that share the same no_rujukan so each
+        // file series occupies one slot, e.g. "100-UiTM (INFO. 1/1) —
+        // PENTADBIRAN - AM (Jilid 1, 2, 3)". This both keeps the label
+        // readable and prevents overflow when a kotak holds many jilids
+        // of the same series.
+        $groups = [];
         foreach ($pemisahans as $p) {
+            $ref = (string) ($p->fail?->noRujukan?->no_rujukan_full ?? '');
+            $perkara = (string) ($p->fail?->noRujukan?->perkara ?? '');
+            $key = $ref . '|' . $perkara;
+            if (!isset($groups[$key])) {
+                $groups[$key] = ['ref' => $ref, 'perkara' => $perkara, 'jilids' => []];
+            }
+            $groups[$key]['jilids'][] = (int) ($p->fail?->jilid ?? 0);
+        }
+
+        // Build one rendered label per group.
+        $labels = [];
+        foreach ($groups as $g) {
+            sort($g['jilids']);
+            $labels[] = $g['ref'] . ' — ' . $g['perkara']
+                . ' (Jilid ' . implode(', ', $g['jilids']) . ')';
+        }
+
+        // If the number of groups exceeds the template's slot count, pack
+        // the overflow groups into the final slot separated by "; " so no
+        // file series is silently dropped.
+        if (count($labels) > $maxFailTokens) {
+            $head = array_slice($labels, 0, $maxFailTokens - 1);
+            $tail = array_slice($labels, $maxFailTokens - 1);
+            $labels = array_merge($head, [implode('; ', $tail)]);
+        }
+
+        $i = 0;
+        foreach ($labels as $label) {
             $i++;
-            if ($i > $maxFailTokens) break;
-            $label = $p->fail->noRujukan->no_rujukan_full
-                . ' — ' . $p->fail->noRujukan->perkara
-                . ' (Jilid ' . $p->fail->jilid . ')';
             $tp->setValue('fail' . $i, $label);
         }
         for ($j = $i + 1; $j <= $maxFailTokens; $j++) {

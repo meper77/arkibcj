@@ -31,6 +31,11 @@
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .page { width: 100%; padding: 10mm; }
             .no-print { display: none; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            .sign-section { page-break-inside: avoid; }
         }
     </style>
 </head>

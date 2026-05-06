@@ -53,6 +53,9 @@
                                 $allApprove = $records->every(fn($r) => $r->status === 'APPROVE');
                                 $statusSummary = $records->pluck('status')->unique()->implode(', ');
                                 $kotakStatus = $records->pluck('status')->unique()->count() === 1 ? $records->first()->status : 'PENDING';
+                                $pemisahanComplete = $records->every(fn($r) => $r->pemisahan
+                                    && !empty($r->pemisahan->tarikh_pemisahan)
+                                    && !empty($r->pemisahan->tujuan_pemisahan));
                             @endphp
                             @foreach($records->values() as $i => $p)
                             <tr class="hover:bg-stone-50 even:bg-stone-50/40 transition-colors">
@@ -63,7 +66,7 @@
                                 </td>
                                 @if($i === 0)
                                     <td rowspan="{{ $count }}" class="px-3 py-3 align-middle">
-                                        @if($canWrite)
+                                        @if($canWrite && $pemisahanComplete)
                                         <form method="POST" action="{{ route('pelupusan.kotak-status') }}">
                                             @csrf
                                             @method('PATCH')
@@ -76,6 +79,11 @@
                                                 <option value="DECLINE" {{ $kotakStatus === 'DECLINE' ? 'selected' : '' }}>DECLINE</option>
                                             </select>
                                         </form>
+                                        @elseif($canWrite && !$pemisahanComplete)
+                                        <select disabled
+                                                class="text-sm rounded-lg border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed font-medium">
+                                            <option>PENDING</option>
+                                        </select>
                                         @else
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold {{ $kotakStatus === 'APPROVE' ? 'bg-emerald-50 text-emerald-800' : ($kotakStatus === 'DECLINE' ? 'bg-rose-50 text-rose-800' : 'bg-amber-50 text-amber-800') }}">{{ $kotakStatus }}</span>
                                         @endif
@@ -84,7 +92,9 @@
                                         {{ $p->person_in_charge ?? '—' }}
                                     </td>
                                     <td rowspan="{{ $count }}" class="px-3 py-3 align-middle text-right">
-                                        @if($allApprove && $canWrite)
+                                        @if(!$pemisahanComplete)
+                                        <span class="inline-flex items-center text-xs text-stone-400 italic">Pemisahan rekod belum lengkap</span>
+                                        @elseif($allApprove && $canWrite)
                                         <form method="POST" action="{{ route('pelupusan.lupus-kotak') }}"
                                               onsubmit="return confirm('Lupus semua fail dalam kotak {{ $kotak }}? Tindakan tidak boleh dibatalkan.')">
                                             @csrf

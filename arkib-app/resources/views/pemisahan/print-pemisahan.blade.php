@@ -27,6 +27,11 @@
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .page { width: 100%; padding: 10mm; }
             .no-print { display: none; }
+            table { page-break-inside: auto; }
+            tr, .record-row { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            .sign-section { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -51,6 +56,10 @@
             <tr>
                 <td class="label">Kampus / Bahagian / Fakulti / Pusat:</td>
                 <td>{{ $user->kampus ?? '' }}{{ $user->cawangan ? ' — ' . $user->cawangan : '' }}{{ $user->fakulti_bahagian ? ' — ' . $user->fakulti_bahagian : '' }}</td>
+            </tr>
+            <tr>
+                <td class="label">Kumpulan Rekod:</td>
+                <td>&nbsp;</td>
             </tr>
             <tr>
                 <td class="label">No. Kotak:</td>
