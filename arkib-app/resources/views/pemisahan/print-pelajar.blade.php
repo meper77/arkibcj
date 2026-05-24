@@ -46,7 +46,7 @@
         </div>
         <div class="row">
             <span class="lbl">Fakulti:</span>
-            <span class="val">{{ $user->fakulti_bahagian ?? '—' }}</span>
+            <span class="val">{{ $user->fakultiBahagian?->nama ?? '—' }}</span>
         </div>
         <div class="row">
             <span class="lbl">Tahun:</span>

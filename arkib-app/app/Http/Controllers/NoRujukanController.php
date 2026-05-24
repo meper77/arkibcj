@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Fail;
 use App\Models\History;
 use App\Models\NoRujukan;
+use App\Models\Pelupusan;
+use App\Models\Pemisahan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,6 +75,16 @@ class NoRujukanController extends Controller
         ]);
 
         $toDelete = NoRujukan::whereIn('id', $request->ids)->get();
+
+        // Drop pending (not-yet-disposed) pelupusan for the child fails so the
+        // cascade delete does not leave orphan rows. Disposed history is kept.
+        $failIds = Fail::whereIn('no_rujukan_id', $request->ids)->pluck('id');
+        if ($failIds->isNotEmpty()) {
+            $pemisahanIds = Pemisahan::whereIn('fail_id', $failIds)->pluck('id');
+            if ($pemisahanIds->isNotEmpty()) {
+                Pelupusan::whereIn('pemisahan_id', $pemisahanIds)->whereNull('lupus_at')->delete();
+            }
+        }
 
         NoRujukan::whereIn('id', $request->ids)->delete();
 

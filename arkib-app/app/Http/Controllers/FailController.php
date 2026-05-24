@@ -22,6 +22,14 @@ use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 
 class FailController extends Controller
 {
+    private static function jenisLabel(Fail $fail): string
+    {
+        if ($fail->jenis_fail === 'AM') {
+            return 'AM';
+        }
+        return implode('-', array_filter(['SULIT', $fail->kategori, $fail->sub_kategori]));
+    }
+
     public function index(Request $request): View
     {
         $fakulti = Auth::user()->fakultiBahagian;
@@ -155,6 +163,7 @@ class FailController extends Controller
         // Auto-create pemisahan record
         Pemisahan::create([
             'fail_id' => $fail->id,
+            'fakulti_bahagian_id' => $fail->fakulti_bahagian_id,
             'person_in_charge' => Auth::user()->name,
         ]);
 
@@ -177,7 +186,24 @@ class FailController extends Controller
         $fakulti = Auth::user()->fakultiBahagian;
         $allowStudentId = $fail->jenis_fail === 'SULIT' && $fail->kategori === 'PELAJAR'
             && $fakulti && $fakulti->student_id;
-        return view('fail.edit', compact('fail', 'availableKertas', 'allowStudentId'));
+
+        // Map kotak -> distinct file-type labels currently in that box (same fakulti,
+        // excluding this fail) so the edit form can warn about type mismatches live.
+        $kotakTypes = [];
+        $boxFiles = Fail::where('fakulti_bahagian_id', $fail->fakulti_bahagian_id)
+            ->where('id', '!=', $fail->id)
+            ->whereNotNull('kotak')
+            ->get(['kotak', 'jenis_fail', 'kategori', 'sub_kategori']);
+        foreach ($boxFiles as $bf) {
+            $label = self::jenisLabel($bf);
+            $kotakTypes[$bf->kotak] ??= [];
+            if (!in_array($label, $kotakTypes[$bf->kotak], true)) {
+                $kotakTypes[$bf->kotak][] = $label;
+            }
+        }
+        $currentType = self::jenisLabel($fail);
+
+        return view('fail.edit', compact('fail', 'availableKertas', 'allowStudentId', 'kotakTypes', 'currentType'));
     }
 
     public function update(Request $request, Fail $fail): RedirectResponse
@@ -196,6 +222,22 @@ class FailController extends Controller
                         ->exists();
                     if ($disposed) {
                         $failCb('No. Kotak ini telah dilupuskan dan tidak boleh digunakan semula.');
+                        return;
+                    }
+                    // One box holds one file type only: every fail sharing a kotak
+                    // must match on jenis_fail + kategori + sub_kategori.
+                    $other = Fail::where('kotak', $value)
+                        ->where('fakulti_bahagian_id', $fail->fakulti_bahagian_id)
+                        ->where('id', '!=', $fail->id)
+                        ->where(fn($q) => $q
+                            ->where('jenis_fail', '!=', $fail->jenis_fail)
+                            ->orWhereRaw('IFNULL(kategori, \'\') != ?', [$fail->kategori ?? ''])
+                            ->orWhereRaw('IFNULL(sub_kategori, \'\') != ?', [$fail->sub_kategori ?? '']))
+                        ->first();
+                    if ($other) {
+                        $existing = self::jenisLabel($other);
+                        $current = self::jenisLabel($fail);
+                        $failCb("No. Kotak ini mengandungi fail jenis {$existing}. Satu kotak hanya untuk satu jenis fail (kini: {$current}).");
                     }
                 },
             ],
@@ -260,6 +302,14 @@ class FailController extends Controller
         $toDelete = Fail::with('noRujukan')->whereIn('id', $request->ids)->get();
         $labels = $toDelete->map(fn($f) => ($f->noRujukan?->no_rujukan_full ?? '') . ' Jld.' . $f->jilid)->all();
         $count = $toDelete->count();
+
+        // Drop pending (not-yet-disposed) pelupusan tied to these fails so the
+        // cascade does not leave orphan rows. Disposed history (lupus_at set)
+        // already has pemisahan_id detached and is preserved.
+        $pemisahanIds = Pemisahan::whereIn('fail_id', $request->ids)->pluck('id');
+        if ($pemisahanIds->isNotEmpty()) {
+            Pelupusan::whereIn('pemisahan_id', $pemisahanIds)->whereNull('lupus_at')->delete();
+        }
 
         Fail::whereIn('id', $request->ids)->delete();
 
@@ -582,6 +632,7 @@ class FailController extends Controller
 
             Pemisahan::create([
                 'fail_id' => $fail->id,
+                'fakulti_bahagian_id' => $fail->fakulti_bahagian_id,
                 'person_in_charge' => Auth::user()->name,
             ]);
 

@@ -86,13 +86,17 @@
                                 <x-input-error :messages="$errors->get('tarikh_tutup')" class="mt-1" />
                             </div>
 
-                            <div>
+                            <div x-data="kotakHint()">
                                 <label class="block text-sm font-medium text-stone-700 mb-1">NO. KOTAK</label>
-                                <input type="text" name="kotak" x-soft-rule="digits"
-                                       value="{{ old('kotak', $fail->kotak) }}"
+                                <input type="text" name="kotak" x-soft-rule="digits" x-model="kotak"
                                        class="block w-full rounded-lg border-stone-300 shadow-sm text-sm focus:border-uitm-purple-500 focus:ring-uitm-purple-500 transition"
                                        placeholder="1">
-                                <p class="mt-1 text-xs text-stone-500">Nombor sahaja</p>
+                                <p class="mt-1 text-xs text-stone-500">Nombor sahaja. Satu kotak hanya untuk satu jenis fail.</p>
+                                <template x-if="hint">
+                                    <p class="mt-1 text-xs"
+                                       :class="hint.kind === 'conflict' ? 'text-rose-600 font-medium' : (hint.kind === 'match' ? 'text-emerald-600' : 'text-stone-500')"
+                                       x-text="hint.text"></p>
+                                </template>
                                 <x-input-error :messages="$errors->get('kotak')" class="mt-1" />
                             </div>
 
@@ -158,4 +162,27 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function kotakHint() {
+            return {
+                kotak: @js(old('kotak', $fail->kotak) ?? ''),
+                kotakTypes: @js($kotakTypes),
+                currentType: @js($currentType),
+                get hint() {
+                    const k = (this.kotak || '').trim();
+                    if (!k) return null;
+                    const types = this.kotakTypes[k];
+                    if (!types || !types.length) {
+                        return { kind: 'new', text: 'Kotak baharu — belum mengandungi fail lain.' };
+                    }
+                    const incompatible = types.filter(t => t !== this.currentType);
+                    if (incompatible.length === 0) {
+                        return { kind: 'match', text: 'Kotak ini mengandungi fail jenis ' + types.join(', ') + ' (serasi).' };
+                    }
+                    return { kind: 'conflict', text: 'Kotak ini mengandungi fail jenis ' + types.join(', ') + ' — tidak serasi dengan fail ini (' + this.currentType + ').' };
+                }
+            };
+        }
+    </script>
 </x-app-layout>

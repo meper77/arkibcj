@@ -31,6 +31,13 @@ class History extends Model
             if ($user->is_superadmin && !$user->fakulti_bahagian_id) {
                 return;
             }
+            if ($user->is_superadmin) {
+                $builder->where(function ($q) use ($user) {
+                    $q->where('histories.fakulti_bahagian_id', $user->fakulti_bahagian_id)
+                      ->orWhereNull('histories.fakulti_bahagian_id');
+                });
+                return;
+            }
             $builder->where('histories.fakulti_bahagian_id', $user->fakulti_bahagian_id);
         });
     }

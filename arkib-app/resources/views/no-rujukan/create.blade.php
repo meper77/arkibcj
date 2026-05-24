@@ -141,14 +141,14 @@
                         this.preview = '—';
                         return;
                     }
+                    const sep = this.space2 ? '. ' : '.';
                     let inner;
                     if (this.cawangan) {
-                        inner = this.kodBahagian + '.(S)' + this.nomborFail;
+                        inner = this.kodBahagian + sep + '(S)' + this.nomborFail;
                     } else {
-                        const sep = this.space2 ? '.' : '. ';
                         inner = this.kodBahagian + sep + this.nomborFail;
                     }
-                    const gap = this.space1 ? '' : ' ';
+                    const gap = this.space1 ? ' ' : '';
                     this.preview = this.siri + '-' + this.kampus + gap + '(' + inner + ')';
                 }
             };

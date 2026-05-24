@@ -48,19 +48,19 @@ class NoRujukan extends Model
     public function getNoRujukanFullAttribute(): string
     {
         $fb = $this->fakultiBahagian;
-        // ON = aksara dirapatkan (no space). OFF = ada ruang.
+        // ON = ada ruang. OFF = aksara dirapatkan (no space).
         $space1 = $fb ? (bool) $fb->additional_space_1 : false;
         $space2 = $fb ? (bool) $fb->additional_space_2 : (bool) $this->additional_space;
         $cawangan = $fb ? (bool) $fb->additional_cawangan : false;
 
+        $sep = $space2 ? '. ' : '.';
         if ($cawangan) {
-            $inner = $this->kod_bahagian . '.(S)' . $this->nombor_fail;
+            $inner = $this->kod_bahagian . $sep . '(S)' . $this->nombor_fail;
         } else {
-            $sep = $space2 ? '.' : '. ';
             $inner = $this->kod_bahagian . $sep . $this->nombor_fail;
         }
 
-        $gap = $space1 ? '' : ' ';
+        $gap = $space1 ? ' ' : '';
         return $this->siri . '-' . $this->kampus . $gap . '(' . $inner . ')';
     }
 }

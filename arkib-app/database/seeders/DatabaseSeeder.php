@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'kampus' => 'UiTM',
                 'cawangan' => null,
-                'fakulti_bahagian' => null,
+                'fakulti_bahagian_id' => null,
                 'position' => null,
                 'is_superadmin' => true,
                 'email_verified_at' => now(),

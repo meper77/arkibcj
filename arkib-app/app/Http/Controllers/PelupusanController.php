@@ -76,12 +76,33 @@ class PelupusanController extends Controller
             return back()->withErrors(['lupus' => 'Hanya rekod berstatus APPROVE boleh dilupuskan.']);
         }
 
-        $pelupusan->update([
-            'lupus_at' => now(),
-            'person_in_charge' => Auth::user()->name,
-        ]);
+        DB::transaction(function () use ($pelupusan) {
+            $fail = $pelupusan->pemisahan
+                ? Fail::withoutGlobalScopes()->with('noRujukan')->find($pelupusan->pemisahan->fail_id)
+                : null;
 
-        History::log('Lupus Rekod', $pelupusan->tajuk_fail ?: ('Pelupusan #' . $pelupusan->id), 'pelupusan', $pelupusan->id);
+            $tajuk = $fail
+                ? trim(($fail->noRujukan->perkara ?? '') . ($fail->jilid ? ' — Jilid ' . $fail->jilid : ''))
+                : ($pelupusan->tajuk_fail ?: ('Pelupusan #' . $pelupusan->id));
+
+            $pelupusan->update([
+                'kotak' => $fail?->kotak ?? $pelupusan->kotak,
+                'tajuk_fail' => $tajuk,
+                'no_rujukan_id' => $fail?->no_rujukan_id ?? $pelupusan->no_rujukan_id,
+                'jilid' => $fail?->jilid ?? $pelupusan->jilid,
+                'fakulti_bahagian_id' => $fail?->fakulti_bahagian_id ?? $pelupusan->fakulti_bahagian_id,
+                'status' => 'LUPUS',
+                'lupus_at' => now(),
+                'person_in_charge' => Auth::user()->name,
+                'pemisahan_id' => null,
+            ]);
+
+            if ($fail) {
+                Fail::withoutGlobalScopes()->where('id', $fail->id)->delete();
+            }
+        });
+
+        History::log('Lupus Rekod', $pelupusan->fresh()->tajuk_fail ?: ('Pelupusan #' . $pelupusan->id), 'pelupusan', $pelupusan->id);
 
         return redirect()->route('pelupusan.index')->with('success', 'Rekod berjaya dilupuskan.');
     }

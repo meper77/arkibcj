@@ -65,7 +65,7 @@
         <table class="meta-table">
             <tr>
                 <td class="label">Fakulti / Bahagian / Pusat / Unit / Cawangan:</td>
-                <td>{{ $user->fakulti_bahagian ?? '' }}{{ $user->cawangan ? ' — ' . $user->cawangan : '' }}</td>
+                <td>{{ $user->fakultiBahagian?->nama ?? '' }}{{ $user->cawangan ? ' — ' . $user->cawangan : '' }}</td>
             </tr>
             <tr>
                 <td class="label">Tarikh Permohonan:</td>

@@ -36,10 +36,11 @@ class DocTemplateService
 
     private function kampusLine($user): string
     {
+        $fakulti = $user->fakultiBahagian?->nama;
         return trim(
             ($user->kampus ?? '')
             . ($user->cawangan ? ' — ' . $user->cawangan : '')
-            . ($user->fakulti_bahagian ? ' — ' . $user->fakulti_bahagian : '')
+            . ($fakulti ? ' — ' . $fakulti : '')
         );
     }
 
@@ -189,7 +190,7 @@ class DocTemplateService
     {
         $tp = $this->newProcessor('labelFailPentadbiranLatest.docx');
         $tp->setValue('kotak', str_pad($kotak, 3, '0', STR_PAD_LEFT));
-        $tp->setValue('fakulti', (string) ($user->fakulti_bahagian ?? '-'));
+        $tp->setValue('fakulti', (string) ($user->fakultiBahagian?->nama ?? '-'));
         $tp->setValue('cawangan', (string) ($user->cawangan ?? '-'));
         $tp->setValue('tahun', $this->tahunRange($pemisahans, fn($p) => $p->fail));
         $tp->setValue('jumlah_fail', (string) $pemisahans->count());
@@ -213,7 +214,7 @@ class DocTemplateService
         $tp = $this->newProcessor('labelFailStafLatest.docx');
         $today = now()->format('d/m/Y');
         $tp->setValue('kotak', str_pad($kotak, 3, '0', STR_PAD_LEFT));
-        $tp->setValue('fakulti', (string) ($user->fakulti_bahagian ?? '-'));
+        $tp->setValue('fakulti', (string) ($user->fakultiBahagian?->nama ?? '-'));
         $tp->setValue('cawangan', (string) ($user->cawangan ?? '-'));
         $tp->setValue('tahun', $this->tahunRange($pemisahans, fn($p) => $p->fail));
         $tp->setValue('jumlah_fail', (string) $pemisahans->count());
@@ -241,7 +242,7 @@ class DocTemplateService
         $nama = $first ? ($first->fail->noRujukan->perkara ?? '-') : '-';
         $abjad = $first ? strtoupper(substr((string) ($first->fail->noRujukan->perkara ?? ''), 0, 1)) : '-';
 
-        $tp->setValue('fakulti', (string) ($user->fakulti_bahagian ?? '-'));
+        $tp->setValue('fakulti', (string) ($user->fakultiBahagian?->nama ?? '-'));
         $tp->setValue('abjad', $abjad);
         $tp->setValue('tahun', $tahun);
         $tp->setValue('jumlah_fail', (string) $pemisahans->count());
@@ -274,7 +275,7 @@ class DocTemplateService
         $tahun = $this->tahunRange($pelupusans, fn($p) => $p->pemisahan?->fail);
 
         $tp->setValue('fakulti', trim(
-            ($user->fakulti_bahagian ?? '')
+            ($user->fakultiBahagian?->nama ?? '')
             . ($user->cawangan ? ' — ' . $user->cawangan : '')
         ));
         $tp->setValue('tarikh', now()->format('d/m/Y'));

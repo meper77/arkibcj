@@ -55,7 +55,8 @@
         <table class="meta-table">
             <tr>
                 <td class="label">Kampus / Bahagian / Fakulti / Pusat:</td>
-                <td>{{ $user->kampus ?? '' }}{{ $user->cawangan ? ' — ' . $user->cawangan : '' }}{{ $user->fakulti_bahagian ? ' — ' . $user->fakulti_bahagian : '' }}</td>
+                @php($fakultiNama = $user->fakultiBahagian?->nama)
+                <td>{{ $user->kampus ?? '' }}{{ $user->cawangan ? ' — ' . $user->cawangan : '' }}{{ $fakultiNama ? ' — ' . $fakultiNama : '' }}</td>
             </tr>
             <tr>
                 <td class="label">Kumpulan Rekod:</td>

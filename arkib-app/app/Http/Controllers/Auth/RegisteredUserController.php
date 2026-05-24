@@ -48,7 +48,7 @@ class RegisteredUserController extends Controller
             ],
             'kampus' => ['required', 'string', 'max:255'],
             'cawangan' => ['nullable', 'string', 'max:255'],
-            'fakulti_bahagian' => ['nullable', 'string', 'max:255'],
+            'fakulti_bahagian_id' => ['nullable', 'integer', 'exists:available_fakulti_bahagian,id'],
             'position' => [
                 'nullable',
                 Rule::in(['PTRJ', 'PRJ']),
@@ -69,7 +69,7 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
             'kampus' => $request->kampus,
             'cawangan' => $request->cawangan ?: null,
-            'fakulti_bahagian' => $request->fakulti_bahagian ?: null,
+            'fakulti_bahagian_id' => $request->fakulti_bahagian_id ?: null,
             'position' => $request->position ?: null,
             'is_superadmin' => false,
         ]);
