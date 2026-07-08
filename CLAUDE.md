@@ -87,9 +87,28 @@ Before the first v1→v2 replace, the live `public_html` was copied server-side 
 
 ## Gotchas
 
-- Don't `composer update` casually — the lock is pinned to a PHP-8.4 set.
+- Don't `composer update` casually — the lock is pinned to a Laravel 12 / PHP 8.2
+  set (`config.platform.php: 8.2.0`); this server has no PHP 8.3+.
 - `vendor/`, `arkib-app/public/build/`, and `.env` are gitignored; CI regenerates
   the first two and restores `.env` from the runner secret store.
 - `rclone sync` mirrors deletions, but `storage/**` and `bootstrap/cache/**` are
   excluded from the app sync and seeded with `rclone copy`, so runtime data
   (sessions, logs, compiled views) is never clobbered.
+
+## Operations (post-deploy)
+
+- **Live:** http://e-arkibcj.uitm.edu.my — the domain serves HTTP (https redirects
+  to http), so `APP_URL` and the deploy curls use `http://`.
+- **Default superadmin:** `admin@uitm.edu.my` / `password` (seeded). **Change it
+  immediately.**
+- **`__deploy.php`** lives in `public_html` only during a deploy and is removed at
+  the end (it can migrate/dump the DB). Actions: `migrate`, `optimize`,
+  `optimize-clear`, `db-info`, `db-backup`, `migrate-fresh` (destructive — resets
+  the DB).
+- **v1→v2 cutover backups:** `public_html_v1_bak/` (server) holds the old site;
+  the old MySQL data is dumped at
+  `private/arkib/storage/app/backups/arkibinfo_db_*.sql` (server) and
+  `C:\deploy\arkib\db-backups\` (runner). Restore with `mysql arkibinfo_db < dump.sql`.
+- The app was developed on SQLite; the `pelupusan` FK migration was reordered to be
+  MySQL-valid (SET NULL needs a nullable column first). Watch for similar
+  SQLite-isms if adding migrations.

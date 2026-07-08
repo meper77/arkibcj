@@ -66,4 +66,4 @@ jobs:
         if: success()
         run: |
           $sha = $env:GITHUB_SHA.Substring(0,7)
-          Write-Host "Deployed commit $sha -> https://e-arkibcj.uitm.edu.my/"
+          Write-Host "Deployed commit $sha -> http://e-arkibcj.uitm.edu.my/"

@@ -17,16 +17,21 @@ return new class extends Migration
 
         // Change pelupusan.pemisahan_id FK to SET NULL so deleting the Fail
         // (which cascade-deletes pemisahan) does not cascade-delete pelupusan.
+        // Order matters on MySQL: drop the old FK, make the column nullable,
+        // THEN add the SET NULL FK (a SET NULL FK on a NOT NULL column errors
+        // with errno 150). SQLite is lax about this; MySQL is not.
         Schema::table('pelupusan', function (Blueprint $table) {
             $table->dropForeign(['pemisahan_id']);
+        });
+
+        Schema::table('pelupusan', function (Blueprint $table) {
+            $table->unsignedBigInteger('pemisahan_id')->nullable()->change();
+        });
+
+        Schema::table('pelupusan', function (Blueprint $table) {
             $table->foreign('pemisahan_id')
                 ->references('id')->on('pemisahan')
                 ->onDelete('set null');
-        });
-
-        // Make pemisahan_id nullable so SET NULL works.
-        Schema::table('pelupusan', function (Blueprint $table) {
-            $table->unsignedBigInteger('pemisahan_id')->nullable()->change();
         });
     }
 

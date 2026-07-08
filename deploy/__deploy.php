@@ -38,6 +38,7 @@ try {
     require $appBase . '/vendor/autoload.php';
     $app    = require_once $appBase . '/bootstrap/app.php';
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
 
     $run = function (string $cmd, array $params = []) use ($kernel) {
         $status = $kernel->call($cmd, $params);
@@ -58,6 +59,56 @@ try {
             break;
         case 'optimize-clear':
             $run('optimize:clear');
+            break;
+        case 'db-info':
+            // read-only: list existing tables + row counts
+            $conn = $app->make('db')->connection();
+            $rows = $conn->select('SHOW TABLES');
+            if (! $rows) { echo "(database is EMPTY - no tables)\n"; break; }
+            $col = array_key_first((array) $rows[0]);
+            echo count($rows) . " tables in " . $conn->getDatabaseName() . ":\n";
+            foreach ($rows as $r) {
+                $name = ((array) $r)[$col];
+                try { $c = $conn->table($name)->count(); } catch (Throwable $e) { $c = '?'; }
+                echo '  ' . str_pad($name, 45) . $c . " rows\n";
+            }
+            break;
+        case 'db-backup':
+            // Pure-PHP mysqldump-equivalent -> storage/app/backups/<db>_<ts>.sql
+            $conn   = $app->make('db')->connection();
+            $pdo    = $conn->getPdo();
+            $dbName = $conn->getDatabaseName();
+            $dir    = $appBase . '/storage/app/backups';
+            if (! is_dir($dir)) { @mkdir($dir, 0775, true); }
+            $file = $dir . '/' . $dbName . '_' . date('Ymd_His') . '.sql';
+            $fh   = fopen($file, 'w');
+            fwrite($fh, "-- backup of {$dbName} at " . date('c') . "\nSET FOREIGN_KEY_CHECKS=0;\n");
+            $tblRows = $conn->select('SHOW TABLES');
+            $col     = array_key_first((array) $tblRows[0]);
+            $rowTotal = 0;
+            foreach ($tblRows as $tr) {
+                $t   = ((array) $tr)[$col];
+                $ddl = (array) $conn->select("SHOW CREATE TABLE `{$t}`")[0];
+                $sql = $ddl['Create Table'] ?? $ddl['Create View'] ?? '';
+                fwrite($fh, "\n-- ---- {$t} ----\nDROP TABLE IF EXISTS `{$t}`;\n{$sql};\n");
+                foreach ($conn->table($t)->get() as $row) {
+                    $vals = array_map(function ($v) use ($pdo) {
+                        if ($v === null)             { return 'NULL'; }
+                        if (is_int($v) || is_float($v)) { return $v; }
+                        return $pdo->quote((string) $v);
+                    }, (array) $row);
+                    fwrite($fh, "INSERT INTO `{$t}` VALUES (" . implode(',', $vals) . ");\n");
+                    $rowTotal++;
+                }
+            }
+            fwrite($fh, "\nSET FOREIGN_KEY_CHECKS=1;\n");
+            fclose($fh);
+            echo "Backed up {$dbName}: " . count($tblRows) . " tables, {$rowTotal} rows\n";
+            echo "File: storage/app/backups/" . basename($file) . " (" . filesize($file) . " bytes)\n";
+            break;
+        case 'migrate-fresh':
+            // DESTRUCTIVE: drops every table, rebuilds Laravel schema, seeds superadmin.
+            $run('migrate:fresh', ['--force' => true, '--seed' => true]);
             break;
         default:
             http_response_code(400);

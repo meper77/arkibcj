@@ -95,13 +95,19 @@ if (-not $deployKey) { throw "DEPLOY_KEY not found in .env" }
 
 function Invoke-DeployAction {
     param([string]$Action)
-    $url = "https://$HostIp/__deploy.php?key=$deployKey&action=$Action"
+    # The domain serves over HTTP (https redirects to http); -L follows it.
+    $url = "http://$HostIp/__deploy.php?key=$deployKey&action=$Action"
     Write-Host "== trigger: $Action ==" -ForegroundColor Green
-    $out = & curl.exe -sk --max-time 180 -H "Host: $Domain" "$url"
+    $out = & curl.exe -s -L --max-time 180 -H "Host: $Domain" "$url"
     Write-Host $out
     if ($out -notmatch 'DONE') { throw "$Action did not report DONE" }
 }
 Invoke-DeployAction 'migrate'
 Invoke-DeployAction 'optimize'
 
-Write-Host "Deployed OK -> https://$Domain/" -ForegroundColor Green
+# The deploy runner is only needed during a deploy; don't leave it on the live
+# site (it can migrate/dump the DB). Next deploy re-uploads it.
+Write-Host "== remove __deploy.php from public_html ==" -ForegroundColor Green
+Invoke-Rclone delete "$WebDest/__deploy.php" --sftp-disable-hashcheck
+
+Write-Host "Deployed OK -> http://$Domain/" -ForegroundColor Green
