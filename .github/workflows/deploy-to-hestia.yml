@@ -30,11 +30,13 @@ jobs:
 
       - name: Tooling
         run: |
+          # Print full version output — do NOT pipe native commands to
+          # Select-Object (the pipeline-stop can kill the process => exit -1).
           $env:Path = "$env:PHP_DIR;C:\Program Files\nodejs;$env:Path"
-          & "$env:PHP_DIR\php.exe" -v | Select-Object -First 1
+          & "$env:PHP_DIR\php.exe" -v
           & "$env:PHP_DIR\php.exe" "$env:COMPOSER_PHAR" --version
-          "node $(node -v)"
-          rclone --version | Select-Object -First 1
+          node -v
+          rclone --version
 
       - name: Restore .env from runner secret store
         run: |
