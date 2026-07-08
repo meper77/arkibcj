@@ -1,0 +1,69 @@
+name: Deploy to Hestia (arkib)
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '**.txt'
+      - 'arkib-app/tests/**'
+      - '.gitignore'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    # Self-hosted runner on the UiTM LAN. Hestia (10.0.26.208) and the
+    # e-arkibcj subdomain are intranet-only, so cloud runners can't reach them.
+    runs-on: [self-hosted, Windows, hestia-lan]
+    defaults:
+      run:
+        shell: 'powershell -ExecutionPolicy Bypass -NoProfile -File "{0}"'
+    env:
+      PHP_DIR: 'C:\Users\User.J1-ALPHA-PENS\php84'
+      COMPOSER_PHAR: 'C:\Users\User.J1-ALPHA-PENS\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\composer.phar'
+      # Secrets live on the runner, not in GitHub (self-hosted). Full .env here:
+      SECRET_ENV: 'C:\deploy\arkib\.env'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Tooling
+        run: |
+          $env:Path = "$env:PHP_DIR;C:\Program Files\nodejs;$env:Path"
+          & "$env:PHP_DIR\php.exe" -v | Select-Object -First 1
+          & "$env:PHP_DIR\php.exe" "$env:COMPOSER_PHAR" --version
+          "node $(node -v)"
+          rclone --version | Select-Object -First 1
+
+      - name: Restore .env from runner secret store
+        run: |
+          if (-not (Test-Path "$env:SECRET_ENV")) { throw "Secret env not found: $env:SECRET_ENV" }
+          Copy-Item "$env:SECRET_ENV" "arkib-app\.env" -Force
+          Write-Host ".env restored from $env:SECRET_ENV"
+
+      - name: Composer install (no-dev)
+        run: |
+          Set-Location arkib-app
+          & "$env:PHP_DIR\php.exe" "$env:COMPOSER_PHAR" install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+          if ($LASTEXITCODE -ne 0) { throw "composer install failed ($LASTEXITCODE)" }
+
+      - name: Build assets (Vite)
+        run: |
+          $env:Path = "C:\Program Files\nodejs;$env:Path"
+          Set-Location arkib-app
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw "npm ci failed ($LASTEXITCODE)" }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw "vite build failed ($LASTEXITCODE)" }
+
+      - name: Deploy (rclone SFTP + migrate + optimize)
+        run: |
+          $env:Path = "$env:PHP_DIR;C:\Program Files\nodejs;$env:Path"
+          .\deploy\deploy.ps1
+
+      - name: Summary
+        if: success()
+        run: |
+          $sha = $env:GITHUB_SHA.Substring(0,7)
+          Write-Host "Deployed commit $sha -> https://e-arkibcj.uitm.edu.my/"
