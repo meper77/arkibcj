@@ -98,7 +98,9 @@ function Invoke-DeployAction {
     # The domain serves over HTTP (https redirects to http); -L follows it.
     $url = "http://$HostIp/__deploy.php?key=$deployKey&action=$Action"
     Write-Host "== trigger: $Action ==" -ForegroundColor Green
-    $out = & curl.exe -s -L --max-time 180 -H "Host: $Domain" "$url"
+    # Out-String: curl emits multiple lines; keep it one string so -notmatch
+    # returns a boolean (an array would make the DONE check always throw).
+    $out = (& curl.exe -s -L --max-time 180 -H "Host: $Domain" "$url" | Out-String)
     Write-Host $out
     if ($out -notmatch 'DONE') { throw "$Action did not report DONE" }
 }
