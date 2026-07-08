@@ -4,14 +4,15 @@ Instructions for AI assistants and operators working in this repo.
 
 ## What this is
 
-**Sistem Arkib UiTM** — a Laravel 13 / PHP 8.4 records-management app (reference
+**Sistem Arkib UiTM** — a Laravel 12 / PHP 8.2 records-management app (reference
 numbers, files, *pemisahan rekod*, *pelupusan rekod*) served at the intranet host
 `e-arkibcj.uitm.edu.my` (Hestia panel on `10.0.26.208`, nginx + php-fpm, MySQL).
 The app itself lives in `arkib-app/`; `res/` holds DOCX print templates.
 
-> PHP 8.4 is required, not 8.3. The committed `composer.lock` resolves to
-> Symfony 8 / `lcobucci/clock`, which need `php >= 8.4`. The server's php-fpm
-> for this domain must be 8.4+.
+> The app was **downgraded from Laravel 13 to Laravel 12** because the Hestia
+> server maxes out at PHP 8.2 and Laravel 13 requires `php >= 8.3`. `composer.json`
+> pins `laravel/framework: ^12.0`, `php: ^8.2`, `phpunit/phpunit: ^11.5`, and
+> `config.platform.php: 8.2.0` so the lock always resolves to an 8.2-safe set.
 
 ## Deploy pipeline (CI/CD)
 
@@ -79,7 +80,7 @@ Before the first v1→v2 replace, the live `public_html` was copied server-side 
 
 ## Build toolchain (on the runner `J1-OMEGA-30`)
 
-- PHP 8.4: `C:\Users\User.J1-ALPHA-PENS\php84\php.exe` (php.ini enables sodium,
+- PHP 8.2: `C:\Users\User.J1-ALPHA-PENS\php82\php.exe` (php.ini enables sodium,
   pdo_mysql, mbstring, gd, intl, zip, xsl, curl, fileinfo, openssl, …).
 - Composer: `…\PHP.PHP.8.3_…\composer.phar` (phar is version-independent).
 - Node/npm on PATH; rclone on PATH.

@@ -19,7 +19,7 @@ jobs:
       run:
         shell: 'powershell -ExecutionPolicy Bypass -NoProfile -File "{0}"'
     env:
-      PHP_DIR: 'C:\Users\User.J1-ALPHA-PENS\php84'
+      PHP_DIR: 'C:\Users\User.J1-ALPHA-PENS\php82'
       COMPOSER_PHAR: 'C:\Users\User.J1-ALPHA-PENS\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\composer.phar'
       # Secrets live on the runner, not in GitHub (self-hosted). Full .env here:
       SECRET_ENV: 'C:\deploy\arkib\.env'
